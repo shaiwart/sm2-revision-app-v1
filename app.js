@@ -120,6 +120,7 @@ class DSASpacedRepetitionTool {
     async init() {
         // this.loadFromLocalStorage();
         await this.loadFromCloud();
+        this.initTheme();
         this.bindEvents();
         this.populateCategoryDropdowns();
         this.updateDashboard();
@@ -216,6 +217,14 @@ class DSASpacedRepetitionTool {
 
     // Event Binding
     bindEvents() {
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
+            });
+        }
+
         // Navigation
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -1483,6 +1492,30 @@ class DSASpacedRepetitionTool {
     }
 
     // Utility Functions
+    initTheme() {
+        const stored = localStorage.getItem('dsaTool_theme');
+        let theme = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        this.applyTheme(theme);
+    }
+
+    applyTheme(theme) {
+        document.documentElement.setAttribute('data-color-scheme', theme);
+        localStorage.setItem('dsaTool_theme', theme);
+        const btn = document.getElementById('theme-toggle');
+        if (btn) {
+            const isDark = theme === 'dark';
+            btn.setAttribute('aria-pressed', String(isDark));
+            btn.textContent = isDark ? '🌙' : '🌞';
+            btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+        }
+    }
+
+    toggleTheme() {
+        const current = document.documentElement.getAttribute('data-color-scheme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        this.applyTheme(next);
+    }
+
     getCurrentDate() {
         // Local, timezone-safe YYYY-MM-DD (avoids UTC off-by-one issues)
         const d = new Date();
