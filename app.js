@@ -410,6 +410,71 @@ class DSASpacedRepetitionTool {
             });
         }
 
+        // Add new category buttons
+        const addCatBtn = document.getElementById('add-category-btn');
+        if (addCatBtn) {
+            addCatBtn.addEventListener('click', () => {
+                const input = document.getElementById('add-new-category-name');
+                const name = input?.value?.trim();
+                if (!name) return this.showAlert('Enter a category name.', 'error');
+                const created = this.addNewCategory(name);
+                if (created) {
+                    input.value = '';
+                    // Auto-check the new category in Add view
+                    const cb = document.querySelector(`#topic-additional-categories input[value="${created}"]`);
+                    if (cb) { cb.checked = true; this.updateSubcategoryFromSelected('add'); }
+                }
+            });
+        }
+        const editCatBtn = document.getElementById('edit-category-btn');
+        if (editCatBtn) {
+            editCatBtn.addEventListener('click', () => {
+                const input = document.getElementById('edit-new-category-name');
+                const name = input?.value?.trim();
+                if (!name) return this.showAlert('Enter a category name.', 'error');
+                const created = this.addNewCategory(name);
+                if (created) {
+                    input.value = '';
+                    // Auto-check the new category in Edit view
+                    const cb = document.querySelector(`#edit-topic-additional-categories input[value="${created}"]`);
+                    if (cb) { cb.checked = true; this.updateSubcategoryFromSelected('edit'); }
+                }
+            });
+        }
+
+        // Add new subcategory buttons
+        const addSubBtn = document.getElementById('add-subcategory-btn');
+        if (addSubBtn) {
+            addSubBtn.addEventListener('click', () => {
+                const nameInput = document.getElementById('add-new-subcategory-name');
+                const parentSel = document.getElementById('add-subcategory-parent');
+                const name = nameInput?.value?.trim();
+                const parent = parentSel?.value;
+                if (!name || !parent) return this.showAlert('Enter sub-category and choose parent.', 'error');
+                const created = this.addNewSubCategory(parent, name);
+                if (created) {
+                    nameInput.value = '';
+                    // If parent is selected in Add view, refresh
+                    this.updateSubcategoryFromSelected('add');
+                }
+            });
+        }
+        const editSubBtn = document.getElementById('edit-subcategory-btn');
+        if (editSubBtn) {
+            editSubBtn.addEventListener('click', () => {
+                const nameInput = document.getElementById('edit-new-subcategory-name');
+                const parentSel = document.getElementById('edit-subcategory-parent');
+                const name = nameInput?.value?.trim();
+                const parent = parentSel?.value;
+                if (!name || !parent) return this.showAlert('Enter sub-category and choose parent.', 'error');
+                const created = this.addNewSubCategory(parent, name);
+                if (created) {
+                    nameInput.value = '';
+                    this.updateSubcategoryFromSelected('edit');
+                }
+            });
+        }
+
         // Make functions available globally for onclick handlers
         window.deleteTopic = (topicId) => this.deleteTopic(topicId);
         window.editTopic = (topicId) => this.openEditModal(topicId);
@@ -1425,67 +1490,3 @@ class DSASpacedRepetitionTool {
 document.addEventListener('DOMContentLoaded', () => {
     new DSASpacedRepetitionTool();
 });
-        // Add new category buttons
-        const addCatBtn = document.getElementById('add-category-btn');
-        if (addCatBtn) {
-            addCatBtn.addEventListener('click', () => {
-                const input = document.getElementById('add-new-category-name');
-                const name = input?.value?.trim();
-                if (!name) return this.showAlert('Enter a category name.', 'error');
-                const created = this.addNewCategory(name);
-                if (created) {
-                    input.value = '';
-                    // Auto-check the new category in Add view
-                    const cb = document.querySelector(`#topic-additional-categories input[value="${created}"]`);
-                    if (cb) { cb.checked = true; this.updateSubcategoryFromSelected('add'); }
-                }
-            });
-        }
-        const editCatBtn = document.getElementById('edit-category-btn');
-        if (editCatBtn) {
-            editCatBtn.addEventListener('click', () => {
-                const input = document.getElementById('edit-new-category-name');
-                const name = input?.value?.trim();
-                if (!name) return this.showAlert('Enter a category name.', 'error');
-                const created = this.addNewCategory(name);
-                if (created) {
-                    input.value = '';
-                    // Auto-check the new category in Edit view
-                    const cb = document.querySelector(`#edit-topic-additional-categories input[value="${created}"]`);
-                    if (cb) { cb.checked = true; this.updateSubcategoryFromSelected('edit'); }
-                }
-            });
-        }
-
-        // Add new subcategory buttons
-        const addSubBtn = document.getElementById('add-subcategory-btn');
-        if (addSubBtn) {
-            addSubBtn.addEventListener('click', () => {
-                const nameInput = document.getElementById('add-new-subcategory-name');
-                const parentSel = document.getElementById('add-subcategory-parent');
-                const name = nameInput?.value?.trim();
-                const parent = parentSel?.value;
-                if (!name || !parent) return this.showAlert('Enter sub-category and choose parent.', 'error');
-                const created = this.addNewSubCategory(parent, name);
-                if (created) {
-                    nameInput.value = '';
-                    // If parent is selected in Add view, refresh
-                    this.updateSubcategoryFromSelected('add');
-                }
-            });
-        }
-        const editSubBtn = document.getElementById('edit-subcategory-btn');
-        if (editSubBtn) {
-            editSubBtn.addEventListener('click', () => {
-                const nameInput = document.getElementById('edit-new-subcategory-name');
-                const parentSel = document.getElementById('edit-subcategory-parent');
-                const name = nameInput?.value?.trim();
-                const parent = parentSel?.value;
-                if (!name || !parent) return this.showAlert('Enter sub-category and choose parent.', 'error');
-                const created = this.addNewSubCategory(parent, name);
-                if (created) {
-                    nameInput.value = '';
-                    this.updateSubcategoryFromSelected('edit');
-                }
-            });
-        }
