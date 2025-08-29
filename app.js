@@ -406,8 +406,8 @@ class DSASpacedRepetitionTool {
     populateCategoryDropdowns() {
         const categorySelect = document.getElementById('topic-category');
         const editCategorySelect = document.getElementById('edit-topic-category');
-        const additionalCategoriesSelect = document.getElementById('topic-additional-categories');
-        const editAdditionalCategoriesSelect = document.getElementById('edit-topic-additional-categories');
+        const additionalCategoriesContainer = document.getElementById('topic-additional-categories');
+        const editAdditionalCategoriesContainer = document.getElementById('edit-topic-additional-categories');
         const categoryFilter = document.getElementById('category-filter');
 
         // Sort categories alphabetically
@@ -449,27 +449,34 @@ class DSASpacedRepetitionTool {
             editCategorySelect.appendChild(newCategoryOption);
         }
 
-        // Populate additional categories (add view)
-        if (additionalCategoriesSelect) {
-            additionalCategoriesSelect.innerHTML = '';
+        // Helper to render checkboxes for additional categories
+        const renderAdditionalCheckboxes = (container, nameAttr) => {
+            if (!container) return;
+            container.innerHTML = '';
             sortedCategories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                additionalCategoriesSelect.appendChild(option);
-            });
-        }
+                const id = `${nameAttr}-${category.replace(/\s+/g, '-').toLowerCase()}`;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'checkbox-item';
 
-        // Populate additional categories (edit view)
-        if (editAdditionalCategoriesSelect) {
-            editAdditionalCategoriesSelect.innerHTML = '';
-            sortedCategories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                editAdditionalCategoriesSelect.appendChild(option);
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.id = id;
+                input.name = nameAttr;
+                input.value = category;
+
+                const label = document.createElement('label');
+                label.setAttribute('for', id);
+                label.textContent = category;
+
+                wrapper.appendChild(input);
+                wrapper.appendChild(label);
+                container.appendChild(wrapper);
             });
-        }
+        };
+
+        // Populate additional categories (checkbox groups)
+        renderAdditionalCheckboxes(additionalCategoriesContainer, 'additionalCategories');
+        renderAdditionalCheckboxes(editAdditionalCategoriesContainer, 'additionalCategories');
 
         // Populate filter dropdown
         if (categoryFilter) {
@@ -696,11 +703,8 @@ class DSASpacedRepetitionTool {
         const selectedSubCategory = formData.get('subcategory') || '';
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
-        // Get additional categories selections (multi-select)
-        const additionalCategoriesSelectEl = document.getElementById('topic-additional-categories');
-        const additionalCategories = additionalCategoriesSelectEl
-            ? Array.from(additionalCategoriesSelectEl.selectedOptions).map(o => o.value)
-            : [];
+        // Get additional categories selections (checkboxes)
+        const additionalCategories = Array.from(document.querySelectorAll('#topic-additional-categories input[type="checkbox"]:checked')).map(cb => cb.value);
 
         // Validate topic name
         if (!name) {
@@ -800,6 +804,11 @@ class DSASpacedRepetitionTool {
             form.reset();
             this.handleCategorySelection('', 'add');
             this.handleSubCategorySelection('', 'add');
+            // Clear additional categories checkboxes
+            const addContainer = document.getElementById('topic-additional-categories');
+            if (addContainer) {
+                addContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
         }
 
         // Clear any alerts
@@ -838,14 +847,14 @@ class DSASpacedRepetitionTool {
         }, 100);
 
         // Set additional categories selections (exclude primary)
-        const editAdditionalSelect = document.getElementById('edit-topic-additional-categories');
-        if (editAdditionalSelect) {
+        const editAdditionalContainer = document.getElementById('edit-topic-additional-categories');
+        if (editAdditionalContainer) {
             const allCats = topic.categories && Array.isArray(topic.categories)
                 ? topic.categories
                 : (topic.category ? [topic.category] : []);
             const additional = allCats.filter(c => c !== topic.category);
-            Array.from(editAdditionalSelect.options).forEach(opt => {
-                opt.selected = additional.includes(opt.value);
+            editAdditionalContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = additional.includes(cb.value);
             });
         }
 
@@ -870,6 +879,11 @@ class DSASpacedRepetitionTool {
             form.reset();
             this.handleCategorySelection('', 'edit');
             this.handleSubCategorySelection('', 'edit');
+            // Clear additional categories checkboxes
+            const editContainer = document.getElementById('edit-topic-additional-categories');
+            if (editContainer) {
+                editContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
         }
     }
 
@@ -893,11 +907,8 @@ class DSASpacedRepetitionTool {
         const selectedSubCategory = formData.get('subcategory') || '';
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
-        // Get additional categories selections (multi-select)
-        const editAdditionalCategoriesSelectEl = document.getElementById('edit-topic-additional-categories');
-        const additionalCategories = editAdditionalCategoriesSelectEl
-            ? Array.from(editAdditionalCategoriesSelectEl.selectedOptions).map(o => o.value)
-            : [];
+        // Get additional categories selections (checkboxes)
+        const additionalCategories = Array.from(document.querySelectorAll('#edit-topic-additional-categories input[type="checkbox"]:checked')).map(cb => cb.value);
 
         // Validate topic name
         if (!name) {

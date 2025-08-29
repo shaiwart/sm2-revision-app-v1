@@ -85,12 +85,10 @@
                             </select>
                         </div>
 
-                        <!-- Additional Categories (optional, multi-select) -->
+                        <!-- Additional Categories (optional) -->
                         <div class="form-group">
-                            <label class="form-label" for="topic-additional-categories">Additional Categories (optional)</label>
-                            <select id="topic-additional-categories" name="additionalCategories" class="form-control" multiple>
-                            </select>
-                            <small class="form-text">Hold Ctrl/Cmd to select multiple.</small>
+                            <label class="form-label" id="topic-additional-categories-label">Additional Categories (optional)</label>
+                            <div id="topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="topic-additional-categories-label"></div>
                         </div>
 
                         <!-- New Category Input (Hidden by default) -->
@@ -219,12 +217,10 @@
                             </select>
                         </div>
 
-                        <!-- Additional Categories for Edit (optional, multi-select) -->
+                        <!-- Additional Categories for Edit (optional) -->
                         <div class="form-group">
-                            <label class="form-label" for="edit-topic-additional-categories">Additional Categories (optional)</label>
-                            <select id="edit-topic-additional-categories" name="additionalCategories" class="form-control" multiple>
-                            </select>
-                            <small class="form-text">Hold Ctrl/Cmd to select multiple.</small>
+                            <label class="form-label" id="edit-topic-additional-categories-label">Additional Categories (optional)</label>
+                            <div id="edit-topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="edit-topic-additional-categories-label"></div>
                         </div>
 
                         <!-- New Category Input for Edit (Hidden by default) -->
