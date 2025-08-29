@@ -308,6 +308,8 @@ html {
   box-sizing: border-box;
   /* Reserve space for vertical scrollbar to avoid layout shift */
   scrollbar-gutter: stable;
+  /* Prevent horizontal scrollbar caused by 100vw edge-to-edge bars */
+  overflow-x: hidden;
 }
 
 body {
