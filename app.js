@@ -525,38 +525,39 @@ class DSASpacedRepetitionTool {
         return Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`)).map(cb => cb.value);
     }
 
-    // Update subcategory dropdown based on selected categories
+    // Update subcategory checkboxes based on selected categories (union)
     updateSubcategoryFromSelected(context) {
         const selected = this.getSelectedCategories(context);
-        const prefix = context === 'edit' ? 'edit-' : '';
-        const subcategorySelect = document.getElementById(`${prefix}topic-subcategory`);
-        if (!subcategorySelect) return;
+        const containerId = context === 'edit' ? 'edit-topic-subcategories' : 'topic-subcategories';
+        const container = document.getElementById(containerId);
+        if (!container) return;
 
-        if (selected.length === 1) {
-            // Populate subcategories for the single selected category
-            const categoryValue = selected[0];
-            subcategorySelect.disabled = false;
-            subcategorySelect.innerHTML = '<option value="">Select a sub-category...</option>';
-            const subcategories = this.subCategories[categoryValue] || [];
-            const sortedSubCategories = [...subcategories].sort();
-            sortedSubCategories.forEach(subcategory => {
-                const option = document.createElement('option');
-                option.value = subcategory;
-                option.textContent = subcategory;
-                subcategorySelect.appendChild(option);
-            });
+        const set = new Set();
+        selected.forEach(cat => {
+            (this.subCategories[cat] || []).forEach(sc => set.add(sc));
+        });
 
-            const newSubCategoryOption = document.createElement('option');
-            newSubCategoryOption.value = 'add-new';
-            newSubCategoryOption.textContent = 'Add New Sub-Category...';
-            newSubCategoryOption.style.fontStyle = 'italic';
-            subcategorySelect.appendChild(newSubCategoryOption);
-        } else {
-            subcategorySelect.disabled = true;
-            subcategorySelect.innerHTML = selected.length === 0
-                ? '<option value="">Select a category first...</option>'
-                : '<option value="">Select a single category to choose sub-category...</option>';
-        }
+        const list = Array.from(set).sort();
+        container.innerHTML = '';
+        list.forEach(subcategory => {
+            const id = `${containerId}-${subcategory.replace(/\s+/g, '-').toLowerCase()}`;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'checkbox-item';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = id;
+            input.name = 'subcategories';
+            input.value = subcategory;
+
+            const label = document.createElement('label');
+            label.setAttribute('for', id);
+            label.textContent = subcategory;
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(label);
+            container.appendChild(wrapper);
+        });
     }
 
     populateSubCategoryDropdown(categoryValue, context) {
@@ -698,7 +699,8 @@ class DSASpacedRepetitionTool {
         const formData = new FormData(form);
 
         const name = formData.get('name')?.trim() || '';
-        const selectedSubCategory = formData.get('subcategory') || '';
+        // Sub-categories via checkboxes
+        const selectedSubCategories = Array.from(document.querySelectorAll('#topic-subcategories input[type="checkbox"]:checked')).map(cb => cb.value);
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
         // Get additional categories selections (checkboxes)
@@ -716,32 +718,8 @@ class DSASpacedRepetitionTool {
             return;
         }
 
-        let finalSubCategory = selectedSubCategory;
-
-        // Handle new sub-category creation (only when exactly one category selected)
-        if (selectedSubCategory === 'add-new') {
-            if (!newSubCategoryName) {
-                this.showAlert('Please enter a sub-category name.', 'error');
-                return;
-            }
-
-            const singleCategory = additionalCategories.length === 1 ? additionalCategories[0] : null;
-            if (!singleCategory) {
-                this.showAlert('Select exactly one category to add a sub-category for.', 'error');
-                return;
-            }
-
-            const createdSubCategory = this.addNewSubCategory(singleCategory, newSubCategoryName);
-            if (!createdSubCategory) {
-                return; // Error was already shown in addNewSubCategory
-            }
-            finalSubCategory = createdSubCategory;
-        }
-
-        // Sub-category is optional now; ignore if empty
-        if (!finalSubCategory || finalSubCategory === 'add-new') {
-            finalSubCategory = '';
-        }
+        // Optional sub-categories (multi-select)
+        let finalSubCategories = [...selectedSubCategories];
 
         // Check for duplicate topic names (case-insensitive)
         const exists = this.topics.some(topic =>
@@ -760,7 +738,8 @@ class DSASpacedRepetitionTool {
             name: name,
             category: categories[0] || '', // keep first for backward compatibility
             categories: categories,
-            subCategory: finalSubCategory,
+            subCategory: finalSubCategories[0] || '',
+            subCategories: finalSubCategories,
             description: description,
             easeFactor: 2.5,
             interval: 0,
@@ -789,11 +768,15 @@ class DSASpacedRepetitionTool {
         if (form) {
             form.reset();
             this.updateSubcategoryFromSelected('add');
-            this.handleSubCategorySelection('', 'add');
             // Clear additional categories checkboxes
             const addContainer = document.getElementById('topic-additional-categories');
             if (addContainer) {
                 addContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+            // Clear subcategories checkboxes
+            const subContainer = document.getElementById('topic-subcategories');
+            if (subContainer) {
+                subContainer.innerHTML = '';
             }
         }
 
@@ -834,10 +817,14 @@ class DSASpacedRepetitionTool {
             });
             // Update subcategory based on single-selection rule
             this.updateSubcategoryFromSelected('edit');
-            setTimeout(() => {
-                const editSub = document.getElementById('edit-topic-subcategory');
-                if (editSub) editSub.value = topic.subCategory || '';
-            }, 50);
+            // Check subcategory checkboxes from topic
+            const editSubContainer = document.getElementById('edit-topic-subcategories');
+            if (editSubContainer) {
+                const subs = Array.isArray(topic.subCategories) ? topic.subCategories : (topic.subCategory ? [topic.subCategory] : []);
+                editSubContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = subs.includes(cb.value);
+                });
+            }
         }
 
         // (primary vs additional no longer used; keep all checked as above)
@@ -862,11 +849,14 @@ class DSASpacedRepetitionTool {
         if (form) {
             form.reset();
             this.updateSubcategoryFromSelected('edit');
-            this.handleSubCategorySelection('', 'edit');
             // Clear additional categories checkboxes
             const editContainer = document.getElementById('edit-topic-additional-categories');
             if (editContainer) {
                 editContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+            const editSub = document.getElementById('edit-topic-subcategories');
+            if (editSub) {
+                editSub.innerHTML = '';
             }
         }
     }
@@ -886,7 +876,8 @@ class DSASpacedRepetitionTool {
         const formData = new FormData(form);
 
         const name = formData.get('name')?.trim() || '';
-        const selectedSubCategory = formData.get('subcategory') || '';
+        // Sub-categories via checkboxes
+        const selectedSubCategories = Array.from(document.querySelectorAll('#edit-topic-subcategories input[type="checkbox"]:checked')).map(cb => cb.value);
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
         // Get additional categories selections (checkboxes)
@@ -904,32 +895,8 @@ class DSASpacedRepetitionTool {
             return;
         }
 
-        let finalSubCategory = selectedSubCategory;
-
-        // Handle new sub-category creation (only when exactly one category selected)
-        if (selectedSubCategory === 'add-new') {
-            if (!newSubCategoryName) {
-                this.showAlert('Please enter a sub-category name.', 'error');
-                return;
-            }
-
-            const singleCategory = additionalCategories.length === 1 ? additionalCategories[0] : null;
-            if (!singleCategory) {
-                this.showAlert('Select exactly one category to add a sub-category for.', 'error');
-                return;
-            }
-
-            const createdSubCategory = this.addNewSubCategory(singleCategory, newSubCategoryName);
-            if (!createdSubCategory) {
-                return;
-            }
-            finalSubCategory = createdSubCategory;
-        }
-
-        // Sub-category optional now
-        if (!finalSubCategory || finalSubCategory === 'add-new') {
-            finalSubCategory = '';
-        }
+        // Optional sub-categories (multi-select)
+        let finalSubCategories = [...selectedSubCategories];
 
         // Check for duplicate topic names (excluding current topic)
         const exists = this.topics.some(topic =>
@@ -951,7 +918,8 @@ class DSASpacedRepetitionTool {
                 name: name,
                 category: categories[0] || '',
                 categories: categories,
-                subCategory: finalSubCategory,
+                subCategory: finalSubCategories[0] || '',
+                subCategories: finalSubCategories,
                 description: description
             };
 
@@ -1015,7 +983,12 @@ class DSASpacedRepetitionTool {
         }
 
         if (this.selectedSubCategoryFilter !== 'all') {
-            filtered = filtered.filter(topic => topic.subCategory === this.selectedSubCategoryFilter);
+            filtered = filtered.filter(topic => {
+                if (Array.isArray(topic.subCategories)) {
+                    return topic.subCategories.includes(this.selectedSubCategoryFilter);
+                }
+                return topic.subCategory === this.selectedSubCategoryFilter;
+            });
         }
 
         return filtered;
@@ -1061,7 +1034,7 @@ class DSASpacedRepetitionTool {
                     </div>
                     <div class="topic-category">
                         ${categoriesHtml}
-                        <span class="status status--success">${this.escapeHtml(topic.subCategory || 'No Sub-Category')}</span>
+                        ${(() => { const subs = Array.isArray(topic.subCategories) && topic.subCategories.length > 0 ? topic.subCategories : (topic.subCategory ? [topic.subCategory] : []); return subs.length ? subs.map(s => `<span class=\"status status--success\">${this.escapeHtml(s)}</span>`).join(' ') : '<span class=\"status status--success\">No Sub-Category</span>'; })()}
                     </div>
                     <p class="topic-description">${this.escapeHtml(topic.description || 'No description provided.')}</p>
                     <div class="topic-meta">
@@ -1145,7 +1118,12 @@ class DSASpacedRepetitionTool {
                 : (currentTopic.category || '');
             categoryEl.textContent = cats;
         }
-        if (subcategoryEl) subcategoryEl.textContent = currentTopic.subCategory || 'No Sub-Category';
+        if (subcategoryEl) {
+            const subs = Array.isArray(currentTopic.subCategories) && currentTopic.subCategories.length > 0
+                ? currentTopic.subCategories.join(', ')
+                : (currentTopic.subCategory || 'No Sub-Category');
+            subcategoryEl.textContent = subs;
+        }
         if (nameEl) nameEl.textContent = currentTopic.name;
         if (descEl) descEl.textContent = currentTopic.description || 'No description provided.';
 
