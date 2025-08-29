@@ -510,6 +510,27 @@ select.form-control {
   padding-right: var(--space-32);
 }
 
+/* Compact select variant for dashboard filters */
+select.form-control.select-compact {
+  font-size: var(--font-size-sm);
+  padding: var(--space-6) var(--space-12);
+  background-size: 14px;
+  padding-right: var(--space-24);
+}
+
+/* Limit width so dropdown doesn’t feel overwhelming */
+#category-filter.select-compact,
+#subcategory-filter.select-compact {
+  max-width: 280px;
+}
+
+@media (max-width: 640px) {
+  #category-filter.select-compact,
+  #subcategory-filter.select-compact {
+    max-width: 100%;
+  }
+}
+
 /* Add a dark mode specific caret */
 @media (prefers-color-scheme: dark) {
   select.form-control {
@@ -993,6 +1014,14 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--space-32);
+}
+
+.review-header .question-picker {
+  margin: 0 var(--space-16);
+}
+
+#question-picker.select-compact {
+  max-width: 280px;
 }
 
 .review-progress {

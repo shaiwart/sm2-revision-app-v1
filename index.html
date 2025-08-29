@@ -43,13 +43,13 @@
                 <div class="filters-grid">
                     <div class="form-group">
                         <label class="form-label" for="category-filter">Filter by Category:</label>
-                        <select id="category-filter" class="form-control">
+                        <select id="category-filter" class="form-control select-compact">
                             <option value="all">All Categories</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="subcategory-filter">Filter by Sub-Category:</label>
-                        <select id="subcategory-filter" class="form-control" disabled>
+                        <select id="subcategory-filter" class="form-control select-compact" disabled>
                             <option value="all">All Sub-Categories</option>
                         </select>
                     </div>
@@ -137,6 +137,12 @@
                         <div class="progress-bar">
                             <div id="progress-fill" class="progress-fill"></div>
                         </div>
+                    </div>
+                    <div class="question-picker">
+                        <label for="question-picker" class="sr-only">Pick Question</label>
+                        <select id="question-picker" class="form-control select-compact" disabled>
+                            <option value="">Pick question...</option>
+                        </select>
                     </div>
                     <button id="end-review-btn" class="btn btn--outline btn--sm">End Review</button>
                 </div>

@@ -310,6 +310,25 @@ class DSASpacedRepetitionTool {
             });
         }
 
+        // Question picker change
+        const questionPicker = document.getElementById('question-picker');
+        if (questionPicker) {
+            questionPicker.addEventListener('change', (e) => {
+                const topicId = e.target.value;
+                if (!this.reviewSession || !topicId) return;
+
+                // Only allow selecting from remaining items (not completed)
+                const completedIds = new Set(this.reviewSession.completed.map(c => c.topic.id));
+                const index = this.reviewSession.items.findIndex(
+                    (t, i) => t.id === topicId && !completedIds.has(t.id)
+                );
+                if (index !== -1) {
+                    this.reviewSession.currentIndex = index;
+                    this.updateReviewInterface();
+                }
+            });
+        }
+
         // Difficulty buttons
         document.querySelectorAll('.difficulty-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -781,7 +800,8 @@ class DSASpacedRepetitionTool {
             interval: 0,
             repetitions: 0,
             nextReviewDate: this.getCurrentDate(),
-            dateAdded: this.getCurrentDate()
+            dateAdded: this.getCurrentDate(),
+            lastReviewedDate: ''
         };
 
         console.log('Created new topic:', newTopic);
@@ -1177,6 +1197,34 @@ class DSASpacedRepetitionTool {
         if (subcategoryEl) subcategoryEl.textContent = currentTopic.subCategory || 'No Sub-Category';
         if (nameEl) nameEl.textContent = currentTopic.name;
         if (descEl) descEl.textContent = currentTopic.description || 'No description provided.';
+
+        // Populate and sync the question picker
+        const questionPicker = document.getElementById('question-picker');
+        if (questionPicker) {
+            const completedIds = new Set(this.reviewSession.completed.map(c => c.topic.id));
+            // Build options list: only remaining items are enabled; completed are shown but disabled
+            questionPicker.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Pick question...';
+            placeholder.disabled = true;
+            questionPicker.appendChild(placeholder);
+
+            this.reviewSession.items.forEach((item, idx) => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                const isCompleted = completedIds.has(item.id);
+                const labelIdx = idx + 1;
+                // Trim overly long names for compactness
+                const name = item.name && item.name.length > 60 ? item.name.slice(0, 57) + '…' : (item.name || 'Untitled');
+                opt.textContent = `${labelIdx}. ${name}`;
+                opt.disabled = isCompleted;
+                questionPicker.appendChild(opt);
+            });
+
+            questionPicker.disabled = false;
+            questionPicker.value = currentTopic.id;
+        }
     }
 
     answerReview(difficulty) {
@@ -1223,7 +1271,9 @@ class DSASpacedRepetitionTool {
             newTopic.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
         );
 
-        newTopic.nextReviewDate = this.addDaysToDate(this.getCurrentDate(), newTopic.interval);
+        const todayStr = this.getCurrentDate();
+        newTopic.nextReviewDate = this.addDaysToDate(todayStr, newTopic.interval);
+        newTopic.lastReviewedDate = todayStr;
 
         return newTopic;
     }
@@ -1275,9 +1325,7 @@ class DSASpacedRepetitionTool {
 
     getCompletedToday() {
         const today = this.getCurrentDate();
-        return this.topics.filter(topic => {
-            return topic.nextReviewDate > today && topic.repetitions > 0;
-        }).length;
+        return this.topics.filter(topic => topic.lastReviewedDate === today).length;
     }
 
     escapeHtml(text) {
