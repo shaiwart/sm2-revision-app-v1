@@ -819,25 +819,76 @@ class DSASpacedRepetitionTool {
         return trimmedName;
     }
 
+    // Friendly confirm modal. Returns Promise<boolean>
+    showConfirmDialog({ title = 'Confirm', message = 'Are you sure?', confirmText = 'Confirm', cancelText = 'Cancel' } = {}) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirm-modal');
+            const titleEl = document.getElementById('confirm-modal-title');
+            const msgEl = document.getElementById('confirm-modal-message');
+            const btnConfirm = document.getElementById('confirm-modal-confirm');
+            const btnCancel = document.getElementById('confirm-modal-cancel');
+            const btnClose = document.getElementById('confirm-modal-close');
+
+            if (!modal || !titleEl || !msgEl || !btnConfirm || !btnCancel || !btnClose) {
+                // Fallback to browser confirm if modal elements missing
+                resolve(window.confirm(message));
+                return;
+            }
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                btnConfirm.removeEventListener('click', onConfirm);
+                btnCancel.removeEventListener('click', onCancel);
+                btnClose.removeEventListener('click', onCancel);
+                modal.removeEventListener('click', onBackdrop);
+                document.removeEventListener('keydown', onKey);
+            };
+            const onConfirm = () => { cleanup(); resolve(true); };
+            const onCancel = () => { cleanup(); resolve(false); };
+            const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+            const onKey = (e) => { if (e.key === 'Escape') onCancel(); if (e.key === 'Enter') onConfirm(); };
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            btnConfirm.textContent = confirmText;
+            btnCancel.textContent = cancelText;
+
+            btnConfirm.addEventListener('click', onConfirm);
+            btnCancel.addEventListener('click', onCancel);
+            btnClose.addEventListener('click', onCancel);
+            modal.addEventListener('click', onBackdrop);
+            document.addEventListener('keydown', onKey);
+
+            modal.classList.remove('hidden');
+        });
+    }
+
     confirmAndDeleteCategory(categoryName) {
         if (!categoryName) return;
-        if (!confirm(`Are you sure you want to delete the category "${categoryName}"? This will remove it from the list and from any topics where it's selected.`)) return;
+        this.showConfirmDialog({
+            title: 'Delete Category',
+            message: `Are you sure you want to delete the category "${categoryName}"? It will be removed from all topics.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        }).then((ok) => {
+            if (!ok) return;
 
-        // Remove from categories list and mapping
-        this.categories = this.categories.filter(c => c !== categoryName);
-        delete this.subCategories[categoryName];
+            // Remove from categories list and mapping
+            this.categories = this.categories.filter(c => c !== categoryName);
+            delete this.subCategories[categoryName];
 
-        // Remove from topics' categories
-        this.topics = this.topics.map(t => {
-            const cats = Array.isArray(t.categories) ? t.categories.filter(c => c !== categoryName) : (t.category && t.category !== categoryName ? [t.category] : []);
-            const primary = cats[0] || '';
-            return { ...t, categories: cats, category: primary };
+            // Remove from topics' categories
+            this.topics = this.topics.map(t => {
+                const cats = Array.isArray(t.categories) ? t.categories.filter(c => c !== categoryName) : (t.category && t.category !== categoryName ? [t.category] : []);
+                const primary = cats[0] || '';
+                return { ...t, categories: cats, category: primary };
+            });
+
+            this.saveToCloud();
+            this.populateCategoryDropdowns();
+            this.updateDashboard();
+            this.showAlert(`Category "${categoryName}" deleted.`, 'success');
         });
-
-        this.saveToCloud();
-        this.populateCategoryDropdowns();
-        this.updateDashboard();
-        this.showAlert(`Category "${categoryName}" deleted.`, 'success');
     }
 
     confirmAndDeleteSubCategory(subCategoryName, parentCategories = []) {
@@ -847,23 +898,30 @@ class DSASpacedRepetitionTool {
         if (parents.length === 0) return;
 
         const parentList = parents.join(', ');
-        if (!confirm(`Delete sub-category "${subCategoryName}" from: ${parentList}?`)) return;
+        this.showConfirmDialog({
+            title: 'Delete Sub-Category',
+            message: `Delete sub-category "${subCategoryName}" from: ${parentList}?`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        }).then((ok) => {
+            if (!ok) return;
 
-        parents.forEach(cat => {
-            this.subCategories[cat] = (this.subCategories[cat] || []).filter(sc => sc !== subCategoryName);
+            parents.forEach(cat => {
+                this.subCategories[cat] = (this.subCategories[cat] || []).filter(sc => sc !== subCategoryName);
+            });
+
+            // Remove from topics' subCategories arrays
+            this.topics = this.topics.map(t => {
+                const subs = Array.isArray(t.subCategories) ? t.subCategories.filter(s => s !== subCategoryName) : (t.subCategory && t.subCategory !== subCategoryName ? [t.subCategory] : []);
+                return { ...t, subCategories: subs, subCategory: subs[0] || '' };
+            });
+
+            this.saveToCloud();
+            this.updateSubcategoryFromSelected('add');
+            this.updateSubcategoryFromSelected('edit');
+            this.updateDashboard();
+            this.showAlert(`Sub-category "${subCategoryName}" deleted.`, 'success');
         });
-
-        // Remove from topics' subCategories arrays
-        this.topics = this.topics.map(t => {
-            const subs = Array.isArray(t.subCategories) ? t.subCategories.filter(s => s !== subCategoryName) : (t.subCategory && t.subCategory !== subCategoryName ? [t.subCategory] : []);
-            return { ...t, subCategories: subs, subCategory: subs[0] || '' };
-        });
-
-        this.saveToCloud();
-        this.updateSubcategoryFromSelected('add');
-        this.updateSubcategoryFromSelected('edit');
-        this.updateDashboard();
-        this.showAlert(`Sub-category "${subCategoryName}" deleted.`, 'success');
     }
 
     // Topic Management

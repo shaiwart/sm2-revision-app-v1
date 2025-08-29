@@ -1094,7 +1094,7 @@ body {
   border-radius: var(--radius-lg);
   padding: var(--space-32);
   margin-bottom: var(--space-32);
-  text-align: center;
+  text-align: left;
   box-shadow: var(--shadow-sm);
 }
 
@@ -1266,6 +1266,13 @@ body {
 
 .modal-body {
   padding: var(--space-20);
+}
+
+.modal-actions {
+  display: flex;
+  gap: var(--space-12);
+  justify-content: flex-end;
+  padding: 0 var(--space-20) var(--space-20) var(--space-20);
 }
 
 /* Responsive Design */
