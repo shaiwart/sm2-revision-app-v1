@@ -43,13 +43,13 @@
                 <div class="filters-grid">
                     <div class="form-group">
                         <label class="form-label" for="category-filter">Filter by Category:</label>
-                        <select id="category-filter" class="form-control">
+                        <select id="category-filter" class="form-control select-compact">
                             <option value="all">All Categories</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="subcategory-filter">Filter by Sub-Category:</label>
-                        <select id="subcategory-filter" class="form-control" disabled>
+                        <select id="subcategory-filter" class="form-control select-compact" disabled>
                             <option value="all">All Sub-Categories</option>
                         </select>
                     </div>
@@ -78,26 +78,29 @@
                             <input type="text" id="topic-name" name="name" class="form-control" required>
                         </div>
 
+                        <!-- Categories (choose one or more) -->
                         <div class="form-group">
-                            <label class="form-label" for="topic-category">Category *</label>
-                            <select id="topic-category" name="category" class="form-control" required>
-                                <option value="">Select a category...</option>
-                            </select>
+                            <div class="inline-header">
+                                <label class="form-label" id="topic-additional-categories-label">Categories *</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="add-new-category-name" class="form-control input-sm" placeholder="New category...">
+                                    <button type="button" id="add-category-btn" class="btn btn--outline btn--sm">Add Category</button>
+                                </div>
+                            </div>
+                            <div id="topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="topic-additional-categories-label"></div>
                         </div>
 
-                        <!-- New Category Input (Hidden by default) -->
-                        <div id="new-category-group" class="form-group" style="display: none;">
-                            <label class="form-label" for="new-category-name">New Category Name *</label>
-                            <input type="text" id="new-category-name" name="newCategory" class="form-control">
-                            <small class="form-text">Enter a unique category name</small>
-                        </div>
-
-                        <!-- Sub-Category Selection -->
+                        <!-- Sub-Categories (optional, multi-select via checkboxes) -->
                         <div class="form-group">
-                            <label class="form-label" for="topic-subcategory">Sub-Category *</label>
-                            <select id="topic-subcategory" name="subcategory" class="form-control" disabled required>
-                                <option value="">Select a category first...</option>
-                            </select>
+                            <div class="inline-header">
+                                <label class="form-label" id="topic-subcategories-label">Sub-Categories (optional)</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="add-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category...">
+                                    <select id="add-subcategory-parent" class="form-control input-sm"></select>
+                                    <button type="button" id="add-subcategory-btn" class="btn btn--outline btn--sm">Add Sub-Category</button>
+                                </div>
+                            </div>
+                            <div id="topic-subcategories" class="checkbox-group" role="group" aria-labelledby="topic-subcategories-label"></div>
                         </div>
 
                         <!-- New Sub-Category Input (Hidden by default) -->
@@ -131,6 +134,12 @@
                         <div class="progress-bar">
                             <div id="progress-fill" class="progress-fill"></div>
                         </div>
+                    </div>
+                    <div class="question-picker">
+                        <label for="question-picker" class="sr-only">Pick Question</label>
+                        <select id="question-picker" class="form-control select-compact" disabled>
+                            <option value="">Pick question...</option>
+                        </select>
                     </div>
                     <button id="end-review-btn" class="btn btn--outline btn--sm">End Review</button>
                 </div>
@@ -204,33 +213,29 @@
                             <input type="text" id="edit-topic-name" name="name" class="form-control" required>
                         </div>
 
+                        <!-- Categories for Edit -->
                         <div class="form-group">
-                            <label class="form-label" for="edit-topic-category">Category *</label>
-                            <select id="edit-topic-category" name="category" class="form-control" required>
-                                <option value="">Select a category...</option>
-                            </select>
+                            <div class="inline-header">
+                                <label class="form-label" id="edit-topic-additional-categories-label">Categories *</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="edit-new-category-name" class="form-control input-sm" placeholder="New category...">
+                                    <button type="button" id="edit-category-btn" class="btn btn--outline btn--sm">Add Category</button>
+                                </div>
+                            </div>
+                            <div id="edit-topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="edit-topic-additional-categories-label"></div>
                         </div>
 
-                        <!-- New Category Input for Edit (Hidden by default) -->
-                        <div id="edit-new-category-group" class="form-group" style="display: none;">
-                            <label class="form-label" for="edit-new-category-name">New Category Name *</label>
-                            <input type="text" id="edit-new-category-name" name="newCategory" class="form-control">
-                            <small class="form-text">Enter a unique category name</small>
-                        </div>
-
-                        <!-- Sub-Category Selection for Edit -->
+                        <!-- Sub-Categories for Edit (optional) -->
                         <div class="form-group">
-                            <label class="form-label" for="edit-topic-subcategory">Sub-Category *</label>
-                            <select id="edit-topic-subcategory" name="subcategory" class="form-control" required>
-                                <option value="">Select a category first...</option>
-                            </select>
-                        </div>
-
-                        <!-- New Sub-Category Input for Edit (Hidden by default) -->
-                        <div id="edit-new-subcategory-group" class="form-group" style="display: none;">
-                            <label class="form-label" for="edit-new-subcategory-name">New Sub-Category Name *</label>
-                            <input type="text" id="edit-new-subcategory-name" name="newSubcategory" class="form-control">
-                            <small class="form-text">Enter a unique sub-category name for this category</small>
+                            <div class="inline-header">
+                                <label class="form-label" id="edit-topic-subcategories-label">Sub-Categories (optional)</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="edit-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category...">
+                                    <select id="edit-subcategory-parent" class="form-control input-sm"></select>
+                                    <button type="button" id="edit-subcategory-btn" class="btn btn--outline btn--sm">Add Sub-Category</button>
+                                </div>
+                            </div>
+                            <div id="edit-topic-subcategories" class="checkbox-group" role="group" aria-labelledby="edit-topic-subcategories-label"></div>
                         </div>
 
                         <div class="form-group">
@@ -257,6 +262,23 @@
             <div class="modal-actions">
                 <button class="btn btn--outline" id="cancelDelete">Cancel</button>
                 <button class="btn btn--primary" id="confirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Confirm Modal -->
+    <div id="confirm-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirm-modal-title">Confirm</h3>
+                <button id="confirm-modal-close" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-modal-message">Are you sure?</p>
+            </div>
+            <div class="modal-actions">
+                <button id="confirm-modal-cancel" class="btn btn--outline">Cancel</button>
+                <button id="confirm-modal-confirm" class="btn btn--primary">Confirm</button>
             </div>
         </div>
     </div>
