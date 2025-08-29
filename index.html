@@ -80,13 +80,26 @@
 
                         <!-- Categories (choose one or more) -->
                         <div class="form-group">
-                            <label class="form-label" id="topic-additional-categories-label">Categories *</label>
+                            <div class="inline-header">
+                                <label class="form-label" id="topic-additional-categories-label">Categories *</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="add-new-category-name" class="form-control input-sm" placeholder="New category...">
+                                    <button type="button" id="add-category-btn" class="btn btn--outline btn--sm">Add Category</button>
+                                </div>
+                            </div>
                             <div id="topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="topic-additional-categories-label"></div>
                         </div>
 
                         <!-- Sub-Categories (optional, multi-select via checkboxes) -->
                         <div class="form-group">
-                            <label class="form-label" id="topic-subcategories-label">Sub-Categories (optional)</label>
+                            <div class="inline-header">
+                                <label class="form-label" id="topic-subcategories-label">Sub-Categories (optional)</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="add-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category...">
+                                    <select id="add-subcategory-parent" class="form-control input-sm"></select>
+                                    <button type="button" id="add-subcategory-btn" class="btn btn--outline btn--sm">Add Sub-Category</button>
+                                </div>
+                            </div>
                             <div id="topic-subcategories" class="checkbox-group" role="group" aria-labelledby="topic-subcategories-label"></div>
                         </div>
 
@@ -202,13 +215,26 @@
 
                         <!-- Categories for Edit -->
                         <div class="form-group">
-                            <label class="form-label" id="edit-topic-additional-categories-label">Categories *</label>
+                            <div class="inline-header">
+                                <label class="form-label" id="edit-topic-additional-categories-label">Categories *</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="edit-new-category-name" class="form-control input-sm" placeholder="New category...">
+                                    <button type="button" id="edit-category-btn" class="btn btn--outline btn--sm">Add Category</button>
+                                </div>
+                            </div>
                             <div id="edit-topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="edit-topic-additional-categories-label"></div>
                         </div>
 
                         <!-- Sub-Categories for Edit (optional) -->
                         <div class="form-group">
-                            <label class="form-label" id="edit-topic-subcategories-label">Sub-Categories (optional)</label>
+                            <div class="inline-header">
+                                <label class="form-label" id="edit-topic-subcategories-label">Sub-Categories (optional)</label>
+                                <div class="inline-actions">
+                                    <input type="text" id="edit-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category...">
+                                    <select id="edit-subcategory-parent" class="form-control input-sm"></select>
+                                    <button type="button" id="edit-subcategory-btn" class="btn btn--outline btn--sm">Add Sub-Category</button>
+                                </div>
+                            </div>
                             <div id="edit-topic-subcategories" class="checkbox-group" role="group" aria-labelledby="edit-topic-subcategories-label"></div>
                         </div>
 

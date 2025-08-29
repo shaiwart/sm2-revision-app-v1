@@ -852,6 +852,43 @@ body {
   cursor: pointer;
 }
 
+/* Inline header with actions (input + button) aligned to right */
+.inline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+}
+.inline-actions {
+  display: inline-flex;
+  gap: var(--space-8);
+  align-items: center;
+}
+.input-sm {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-sm);
+  height: 32px;
+}
+
+/* Icon button for delete */
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  padding: 0;
+  margin-left: var(--space-8);
+  cursor: pointer;
+}
+.icon-btn:hover { color: var(--color-error); }
+.icon-trash { font-size: 14px; line-height: 1; }
+
+.sub-meta {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  opacity: 0.8;
+}
+
 /* Slightly increase spacing between form groups for better breathing room */
 .form-group {
   margin-bottom: calc(var(--space-24) + 2px);
