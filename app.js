@@ -244,35 +244,60 @@ class DSASpacedRepetitionTool {
             });
         }
 
-        // Category selection change for Add Topic
-        const categorySelect = document.getElementById('topic-category');
-        if (categorySelect) {
-            categorySelect.addEventListener('change', (e) => {
-                this.handleCategorySelection(e.target.value, 'add');
+        // Category checkbox change (Add Topic)
+        const addCatsContainer = document.getElementById('topic-additional-categories');
+        if (addCatsContainer) {
+            addCatsContainer.addEventListener('change', () => {
+                this.updateSubcategoryFromSelected('add');
+            });
+            // Deletions via event delegation
+            addCatsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('button.icon-btn[data-action="delete-category"]');
+                if (btn) {
+                    const cat = btn.dataset.category;
+                    this.confirmAndDeleteCategory(cat);
+                }
             });
         }
 
-        // Category selection change for Edit Topic
-        const editCategorySelect = document.getElementById('edit-topic-category');
-        if (editCategorySelect) {
-            editCategorySelect.addEventListener('change', (e) => {
-                this.handleCategorySelection(e.target.value, 'edit');
+        // Category checkbox change (Edit Topic)
+        const editCatsContainer = document.getElementById('edit-topic-additional-categories');
+        if (editCatsContainer) {
+            editCatsContainer.addEventListener('change', () => {
+                this.updateSubcategoryFromSelected('edit');
+            });
+            editCatsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('button.icon-btn[data-action="delete-category"]');
+                if (btn) {
+                    const cat = btn.dataset.category;
+                    this.confirmAndDeleteCategory(cat);
+                }
             });
         }
 
         // Sub-category selection change for Add Topic
-        const subcategorySelect = document.getElementById('topic-subcategory');
-        if (subcategorySelect) {
-            subcategorySelect.addEventListener('change', (e) => {
-                this.handleSubCategorySelection(e.target.value, 'add');
+        const subcatsContainer = document.getElementById('topic-subcategories');
+        if (subcatsContainer) {
+            subcatsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('button.icon-btn[data-action="delete-subcategory"]');
+                if (btn) {
+                    const sub = btn.dataset.subcategory;
+                    const parents = (btn.dataset.parents || '').split(',').filter(Boolean);
+                    this.confirmAndDeleteSubCategory(sub, parents);
+                }
             });
         }
 
         // Sub-category selection change for Edit Topic
-        const editSubcategorySelect = document.getElementById('edit-topic-subcategory');
-        if (editSubcategorySelect) {
-            editSubcategorySelect.addEventListener('change', (e) => {
-                this.handleSubCategorySelection(e.target.value, 'edit');
+        const editSubcatsContainer = document.getElementById('edit-topic-subcategories');
+        if (editSubcatsContainer) {
+            editSubcatsContainer.addEventListener('click', (e) => {
+                const btn = e.target.closest('button.icon-btn[data-action="delete-subcategory"]');
+                if (btn) {
+                    const sub = btn.dataset.subcategory;
+                    const parents = (btn.dataset.parents || '').split(',').filter(Boolean);
+                    this.confirmAndDeleteSubCategory(sub, parents);
+                }
             });
         }
 
@@ -307,6 +332,25 @@ class DSASpacedRepetitionTool {
         if (endReviewBtn) {
             endReviewBtn.addEventListener('click', () => {
                 this.endReviewSession();
+            });
+        }
+
+        // Question picker change
+        const questionPicker = document.getElementById('question-picker');
+        if (questionPicker) {
+            questionPicker.addEventListener('change', (e) => {
+                const topicId = e.target.value;
+                if (!this.reviewSession || !topicId) return;
+
+                // Only allow selecting from remaining items (not completed)
+                const completedIds = new Set(this.reviewSession.completed.map(c => c.topic.id));
+                const index = this.reviewSession.items.findIndex(
+                    (t, i) => t.id === topicId && !completedIds.has(t.id)
+                );
+                if (index !== -1) {
+                    this.reviewSession.currentIndex = index;
+                    this.updateReviewInterface();
+                }
             });
         }
 
@@ -366,6 +410,71 @@ class DSASpacedRepetitionTool {
             });
         }
 
+        // Add new category buttons
+        const addCatBtn = document.getElementById('add-category-btn');
+        if (addCatBtn) {
+            addCatBtn.addEventListener('click', () => {
+                const input = document.getElementById('add-new-category-name');
+                const name = input?.value?.trim();
+                if (!name) return this.showAlert('Enter a category name.', 'error');
+                const created = this.addNewCategory(name);
+                if (created) {
+                    input.value = '';
+                    // Auto-check the new category in Add view
+                    const cb = document.querySelector(`#topic-additional-categories input[value="${created}"]`);
+                    if (cb) { cb.checked = true; this.updateSubcategoryFromSelected('add'); }
+                }
+            });
+        }
+        const editCatBtn = document.getElementById('edit-category-btn');
+        if (editCatBtn) {
+            editCatBtn.addEventListener('click', () => {
+                const input = document.getElementById('edit-new-category-name');
+                const name = input?.value?.trim();
+                if (!name) return this.showAlert('Enter a category name.', 'error');
+                const created = this.addNewCategory(name);
+                if (created) {
+                    input.value = '';
+                    // Auto-check the new category in Edit view
+                    const cb = document.querySelector(`#edit-topic-additional-categories input[value="${created}"]`);
+                    if (cb) { cb.checked = true; this.updateSubcategoryFromSelected('edit'); }
+                }
+            });
+        }
+
+        // Add new subcategory buttons
+        const addSubBtn = document.getElementById('add-subcategory-btn');
+        if (addSubBtn) {
+            addSubBtn.addEventListener('click', () => {
+                const nameInput = document.getElementById('add-new-subcategory-name');
+                const parentSel = document.getElementById('add-subcategory-parent');
+                const name = nameInput?.value?.trim();
+                const parent = parentSel?.value;
+                if (!name || !parent) return this.showAlert('Enter sub-category and choose parent.', 'error');
+                const created = this.addNewSubCategory(parent, name);
+                if (created) {
+                    nameInput.value = '';
+                    // If parent is selected in Add view, refresh
+                    this.updateSubcategoryFromSelected('add');
+                }
+            });
+        }
+        const editSubBtn = document.getElementById('edit-subcategory-btn');
+        if (editSubBtn) {
+            editSubBtn.addEventListener('click', () => {
+                const nameInput = document.getElementById('edit-new-subcategory-name');
+                const parentSel = document.getElementById('edit-subcategory-parent');
+                const name = nameInput?.value?.trim();
+                const parent = parentSel?.value;
+                if (!name || !parent) return this.showAlert('Enter sub-category and choose parent.', 'error');
+                const created = this.addNewSubCategory(parent, name);
+                if (created) {
+                    nameInput.value = '';
+                    this.updateSubcategoryFromSelected('edit');
+                }
+            });
+        }
+
         // Make functions available globally for onclick handlers
         window.deleteTopic = (topicId) => this.deleteTopic(topicId);
         window.editTopic = (topicId) => this.openEditModal(topicId);
@@ -404,72 +513,78 @@ class DSASpacedRepetitionTool {
 
     // Category Management
     populateCategoryDropdowns() {
-        const categorySelect = document.getElementById('topic-category');
-        const editCategorySelect = document.getElementById('edit-topic-category');
-        const additionalCategoriesSelect = document.getElementById('topic-additional-categories');
-        const editAdditionalCategoriesSelect = document.getElementById('edit-topic-additional-categories');
+        const categorySelect = null; // removed primary select
+        const editCategorySelect = null; // removed primary select (edit)
+        const additionalCategoriesContainer = document.getElementById('topic-additional-categories');
+        const editAdditionalCategoriesContainer = document.getElementById('edit-topic-additional-categories');
         const categoryFilter = document.getElementById('category-filter');
 
         // Sort categories alphabetically
         const sortedCategories = [...this.categories].sort();
 
         // Populate add topic dropdown
-        if (categorySelect) {
-            categorySelect.innerHTML = '<option value="">Select a category...</option>';
-            sortedCategories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                categorySelect.appendChild(option);
-            });
-
-            // Add "Add New Category..." option at the end
-            const newCategoryOption = document.createElement('option');
-            newCategoryOption.value = 'add-new';
-            newCategoryOption.textContent = 'Add New Category...';
-            newCategoryOption.style.fontStyle = 'italic';
-            categorySelect.appendChild(newCategoryOption);
-        }
+        // primary category dropdown removed
 
         // Populate edit topic dropdown
-        if (editCategorySelect) {
-            editCategorySelect.innerHTML = '<option value="">Select a category...</option>';
-            sortedCategories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                editCategorySelect.appendChild(option);
-            });
+        // edit primary category dropdown removed
 
-            // Add "Add New Category..." option at the end
-            const newCategoryOption = document.createElement('option');
-            newCategoryOption.value = 'add-new';
-            newCategoryOption.textContent = 'Add New Category...';
-            newCategoryOption.style.fontStyle = 'italic';
-            editCategorySelect.appendChild(newCategoryOption);
-        }
-
-        // Populate additional categories (add view)
-        if (additionalCategoriesSelect) {
-            additionalCategoriesSelect.innerHTML = '';
+        // Helper to render checkboxes for additional categories
+        const renderAdditionalCheckboxes = (container, nameAttr) => {
+            if (!container) return;
+            container.innerHTML = '';
             sortedCategories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                additionalCategoriesSelect.appendChild(option);
-            });
-        }
+                const id = `${nameAttr}-${category.replace(/\s+/g, '-').toLowerCase()}`;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'checkbox-item';
 
-        // Populate additional categories (edit view)
-        if (editAdditionalCategoriesSelect) {
-            editAdditionalCategoriesSelect.innerHTML = '';
-            sortedCategories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                editAdditionalCategoriesSelect.appendChild(option);
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.id = id;
+                input.name = nameAttr;
+                input.value = category;
+
+                const label = document.createElement('label');
+                label.setAttribute('for', id);
+                label.textContent = category;
+
+                const del = document.createElement('button');
+                del.type = 'button';
+                del.className = 'icon-btn icon-trash';
+                del.setAttribute('aria-label', `Delete category ${category}`);
+                del.textContent = '🗑';
+                del.dataset.action = 'delete-category';
+                del.dataset.category = category;
+
+                wrapper.appendChild(input);
+                wrapper.appendChild(label);
+                wrapper.appendChild(del);
+                container.appendChild(wrapper);
             });
-        }
+        };
+
+        // Populate additional categories (checkbox groups)
+        renderAdditionalCheckboxes(additionalCategoriesContainer, 'additionalCategories');
+        renderAdditionalCheckboxes(editAdditionalCategoriesContainer, 'additionalCategories');
+
+        // After rendering, update subcategory checkbox lists based on current selections
+        this.updateSubcategoryFromSelected('add');
+        this.updateSubcategoryFromSelected('edit');
+
+        // Populate subcategory parent selects for add/edit subcategory forms
+        const addSubParent = document.getElementById('add-subcategory-parent');
+        const editSubParent = document.getElementById('edit-subcategory-parent');
+        const fillParentSelect = (sel) => {
+            if (!sel) return;
+            sel.innerHTML = '';
+            sortedCategories.forEach(category => {
+                const opt = document.createElement('option');
+                opt.value = category;
+                opt.textContent = category;
+                sel.appendChild(opt);
+            });
+        };
+        fillParentSelect(addSubParent);
+        fillParentSelect(editSubParent);
 
         // Populate filter dropdown
         if (categoryFilter) {
@@ -517,39 +632,65 @@ class DSASpacedRepetitionTool {
         }
     }
 
-    handleCategorySelection(value, context) {
-        const prefix = context === 'edit' ? 'edit-' : '';
-        const newCategoryGroup = document.getElementById(`${prefix}new-category-group`);
-        const newCategoryInput = document.getElementById(`${prefix}new-category-name`);
-        const subcategorySelect = document.getElementById(`${prefix}topic-subcategory`);
+    handleCategorySelection() { /* deprecated: primary category removed */ }
 
-        if (value === 'add-new') {
-            if (newCategoryGroup) {
-                newCategoryGroup.style.display = 'block';
-            }
-            if (newCategoryInput) {
-                newCategoryInput.setAttribute('required', 'required');
-                setTimeout(() => newCategoryInput.focus(), 100);
-            }
-            if (subcategorySelect) {
-                subcategorySelect.disabled = true;
-                subcategorySelect.innerHTML = '<option value="">Select a category first...</option>';
-            }
-        } else {
-            if (newCategoryGroup) {
-                newCategoryGroup.style.display = 'none';
-            }
-            if (newCategoryInput) {
-                newCategoryInput.removeAttribute('required');
-                newCategoryInput.value = '';
-            }
+    // Helper: read selected checkbox categories by context
+    getSelectedCategories(context) {
+        const containerId = context === 'edit' ? 'edit-topic-additional-categories' : 'topic-additional-categories';
+        return Array.from(document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`)).map(cb => cb.value);
+    }
 
-            // Update sub-categories for selected category
-            this.populateSubCategoryDropdown(value, context);
+    // Update subcategory checkboxes based on selected categories (union)
+    updateSubcategoryFromSelected(context) {
+        const selected = this.getSelectedCategories(context);
+        const containerId = context === 'edit' ? 'edit-topic-subcategories' : 'topic-subcategories';
+        const container = document.getElementById(containerId);
+        if (!container) return;
 
-            // Clear category-related error messages
-            this.clearCategoryErrors();
-        }
+        // Build mapping subcategory -> parents
+        const map = new Map();
+        selected.forEach(cat => {
+            (this.subCategories[cat] || []).forEach(sc => {
+                if (!map.has(sc)) map.set(sc, new Set());
+                map.get(sc).add(cat);
+            });
+        });
+
+        const list = Array.from(map.keys()).sort();
+        container.innerHTML = '';
+        list.forEach(subcategory => {
+            const id = `${containerId}-${subcategory.replace(/\s+/g, '-').toLowerCase()}`;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'checkbox-item';
+
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = id;
+            input.name = 'subcategories';
+            input.value = subcategory;
+
+            const label = document.createElement('label');
+            label.setAttribute('for', id);
+            label.textContent = subcategory;
+
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'icon-btn icon-trash';
+            del.textContent = '🗑';
+            del.dataset.action = 'delete-subcategory';
+            del.dataset.subcategory = subcategory;
+            del.dataset.parents = Array.from(map.get(subcategory)).join(',');
+
+            const meta = document.createElement('small');
+            meta.className = 'sub-meta';
+            meta.textContent = Array.from(map.get(subcategory)).join(', ');
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(label);
+            wrapper.appendChild(del);
+            wrapper.appendChild(meta);
+            container.appendChild(wrapper);
+        });
     }
 
     populateSubCategoryDropdown(categoryValue, context) {
@@ -678,6 +819,111 @@ class DSASpacedRepetitionTool {
         return trimmedName;
     }
 
+    // Friendly confirm modal. Returns Promise<boolean>
+    showConfirmDialog({ title = 'Confirm', message = 'Are you sure?', confirmText = 'Confirm', cancelText = 'Cancel' } = {}) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirm-modal');
+            const titleEl = document.getElementById('confirm-modal-title');
+            const msgEl = document.getElementById('confirm-modal-message');
+            const btnConfirm = document.getElementById('confirm-modal-confirm');
+            const btnCancel = document.getElementById('confirm-modal-cancel');
+            const btnClose = document.getElementById('confirm-modal-close');
+
+            if (!modal || !titleEl || !msgEl || !btnConfirm || !btnCancel || !btnClose) {
+                // Fallback to browser confirm if modal elements missing
+                resolve(window.confirm(message));
+                return;
+            }
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                btnConfirm.removeEventListener('click', onConfirm);
+                btnCancel.removeEventListener('click', onCancel);
+                btnClose.removeEventListener('click', onCancel);
+                modal.removeEventListener('click', onBackdrop);
+                document.removeEventListener('keydown', onKey);
+            };
+            const onConfirm = () => { cleanup(); resolve(true); };
+            const onCancel = () => { cleanup(); resolve(false); };
+            const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+            const onKey = (e) => { if (e.key === 'Escape') onCancel(); if (e.key === 'Enter') onConfirm(); };
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            btnConfirm.textContent = confirmText;
+            btnCancel.textContent = cancelText;
+
+            btnConfirm.addEventListener('click', onConfirm);
+            btnCancel.addEventListener('click', onCancel);
+            btnClose.addEventListener('click', onCancel);
+            modal.addEventListener('click', onBackdrop);
+            document.addEventListener('keydown', onKey);
+
+            modal.classList.remove('hidden');
+        });
+    }
+
+    confirmAndDeleteCategory(categoryName) {
+        if (!categoryName) return;
+        this.showConfirmDialog({
+            title: 'Delete Category',
+            message: `Are you sure you want to delete the category "${categoryName}"? It will be removed from all topics.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        }).then((ok) => {
+            if (!ok) return;
+
+            // Remove from categories list and mapping
+            this.categories = this.categories.filter(c => c !== categoryName);
+            delete this.subCategories[categoryName];
+
+            // Remove from topics' categories
+            this.topics = this.topics.map(t => {
+                const cats = Array.isArray(t.categories) ? t.categories.filter(c => c !== categoryName) : (t.category && t.category !== categoryName ? [t.category] : []);
+                const primary = cats[0] || '';
+                return { ...t, categories: cats, category: primary };
+            });
+
+            this.saveToCloud();
+            this.populateCategoryDropdowns();
+            this.updateDashboard();
+            this.showAlert(`Category "${categoryName}" deleted.`, 'success');
+        });
+    }
+
+    confirmAndDeleteSubCategory(subCategoryName, parentCategories = []) {
+        if (!subCategoryName) return;
+        // Determine parents: if none provided, delete across all categories
+        let parents = parentCategories && parentCategories.length ? parentCategories : Object.keys(this.subCategories).filter(k => (this.subCategories[k] || []).includes(subCategoryName));
+        if (parents.length === 0) return;
+
+        const parentList = parents.join(', ');
+        this.showConfirmDialog({
+            title: 'Delete Sub-Category',
+            message: `Delete sub-category "${subCategoryName}" from: ${parentList}?`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        }).then((ok) => {
+            if (!ok) return;
+
+            parents.forEach(cat => {
+                this.subCategories[cat] = (this.subCategories[cat] || []).filter(sc => sc !== subCategoryName);
+            });
+
+            // Remove from topics' subCategories arrays
+            this.topics = this.topics.map(t => {
+                const subs = Array.isArray(t.subCategories) ? t.subCategories.filter(s => s !== subCategoryName) : (t.subCategory && t.subCategory !== subCategoryName ? [t.subCategory] : []);
+                return { ...t, subCategories: subs, subCategory: subs[0] || '' };
+            });
+
+            this.saveToCloud();
+            this.updateSubcategoryFromSelected('add');
+            this.updateSubcategoryFromSelected('edit');
+            this.updateDashboard();
+            this.showAlert(`Sub-category "${subCategoryName}" deleted.`, 'success');
+        });
+    }
+
     // Topic Management
     addTopic() {
         console.log('Adding topic...');
@@ -691,16 +937,12 @@ class DSASpacedRepetitionTool {
         const formData = new FormData(form);
 
         const name = formData.get('name')?.trim() || '';
-        const selectedCategory = formData.get('category') || '';
-        const newCategoryName = formData.get('newCategory')?.trim() || '';
-        const selectedSubCategory = formData.get('subcategory') || '';
+        // Sub-categories via checkboxes
+        const selectedSubCategories = Array.from(document.querySelectorAll('#topic-subcategories input[type="checkbox"]:checked')).map(cb => cb.value);
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
-        // Get additional categories selections (multi-select)
-        const additionalCategoriesSelectEl = document.getElementById('topic-additional-categories');
-        const additionalCategories = additionalCategoriesSelectEl
-            ? Array.from(additionalCategoriesSelectEl.selectedOptions).map(o => o.value)
-            : [];
+        // Get additional categories selections (checkboxes)
+        const additionalCategories = Array.from(document.querySelectorAll('#topic-additional-categories input[type="checkbox"]:checked')).map(cb => cb.value);
 
         // Validate topic name
         if (!name) {
@@ -708,51 +950,14 @@ class DSASpacedRepetitionTool {
             return;
         }
 
-        let finalCategory = selectedCategory;
-        let finalSubCategory = selectedSubCategory;
-
-        // Handle new category creation
-        if (selectedCategory === 'add-new') {
-            if (!newCategoryName) {
-                this.showAlert('Please enter a category name.', 'error');
-                return;
-            }
-
-            const createdCategory = this.addNewCategory(newCategoryName);
-            if (!createdCategory) {
-                return; // Error was already shown in addNewCategory
-            }
-            finalCategory = createdCategory;
-
-            // Reset sub-category since we're using a new category
-            finalSubCategory = '';
-        }
-
-        // Validate category selection
-        if (!finalCategory || finalCategory === 'add-new') {
-            this.showAlert('Please select a category.', 'error');
+        // Validate category selection (at least one checkbox)
+        if (!additionalCategories || additionalCategories.length === 0) {
+            this.showAlert('Please select at least one category.', 'error');
             return;
         }
 
-        // Handle new sub-category creation
-        if (selectedSubCategory === 'add-new') {
-            if (!newSubCategoryName) {
-                this.showAlert('Please enter a sub-category name.', 'error');
-                return;
-            }
-
-            const createdSubCategory = this.addNewSubCategory(finalCategory, newSubCategoryName);
-            if (!createdSubCategory) {
-                return; // Error was already shown in addNewSubCategory
-            }
-            finalSubCategory = createdSubCategory;
-        }
-
-        // Validate sub-category selection
-        if (!finalSubCategory || finalSubCategory === 'add-new') {
-            this.showAlert('Please select a sub-category.', 'error');
-            return;
-        }
+        // Optional sub-categories (multi-select)
+        let finalSubCategories = [...selectedSubCategories];
 
         // Check for duplicate topic names (case-insensitive)
         const exists = this.topics.some(topic =>
@@ -765,19 +970,21 @@ class DSASpacedRepetitionTool {
         }
 
         // Create new topic
-        const categories = Array.from(new Set([finalCategory, ...additionalCategories].filter(Boolean)));
+        const categories = Array.from(new Set(additionalCategories));
         const newTopic = {
             id: Date.now().toString(),
             name: name,
-            category: finalCategory, // primary (backward-compatible)
+            category: categories[0] || '', // keep first for backward compatibility
             categories: categories,
-            subCategory: finalSubCategory,
+            subCategory: finalSubCategories[0] || '',
+            subCategories: finalSubCategories,
             description: description,
             easeFactor: 2.5,
             interval: 0,
             repetitions: 0,
             nextReviewDate: this.getCurrentDate(),
-            dateAdded: this.getCurrentDate()
+            dateAdded: this.getCurrentDate(),
+            lastReviewedDate: ''
         };
 
         console.log('Created new topic:', newTopic);
@@ -798,8 +1005,17 @@ class DSASpacedRepetitionTool {
         const form = document.getElementById('add-topic-form');
         if (form) {
             form.reset();
-            this.handleCategorySelection('', 'add');
-            this.handleSubCategorySelection('', 'add');
+            this.updateSubcategoryFromSelected('add');
+            // Clear additional categories checkboxes
+            const addContainer = document.getElementById('topic-additional-categories');
+            if (addContainer) {
+                addContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+            // Clear subcategories checkboxes
+            const subContainer = document.getElementById('topic-subcategories');
+            if (subContainer) {
+                subContainer.innerHTML = '';
+            }
         }
 
         // Clear any alerts
@@ -825,29 +1041,31 @@ class DSASpacedRepetitionTool {
         document.getElementById('edit-topic-name').value = topic.name;
         document.getElementById('edit-topic-description').value = topic.description || '';
 
-        // Populate categories first
+        // Populate categories and checkboxes
         this.populateCategoryDropdowns();
 
-        // Set category and populate sub-categories
-        document.getElementById('edit-topic-category').value = topic.category;
-        this.handleCategorySelection(topic.category, 'edit');
-
-        // Set sub-category after a small delay to ensure dropdown is populated
-        setTimeout(() => {
-            document.getElementById('edit-topic-subcategory').value = topic.subCategory;
-        }, 100);
-
-        // Set additional categories selections (exclude primary)
-        const editAdditionalSelect = document.getElementById('edit-topic-additional-categories');
-        if (editAdditionalSelect) {
+        // Set additional categories selections based on topic.categories
+        const editAdditionalContainer = document.getElementById('edit-topic-additional-categories');
+        if (editAdditionalContainer) {
             const allCats = topic.categories && Array.isArray(topic.categories)
                 ? topic.categories
                 : (topic.category ? [topic.category] : []);
-            const additional = allCats.filter(c => c !== topic.category);
-            Array.from(editAdditionalSelect.options).forEach(opt => {
-                opt.selected = additional.includes(opt.value);
+            editAdditionalContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = allCats.includes(cb.value);
             });
+            // Update subcategory based on single-selection rule
+            this.updateSubcategoryFromSelected('edit');
+            // Check subcategory checkboxes from topic
+            const editSubContainer = document.getElementById('edit-topic-subcategories');
+            if (editSubContainer) {
+                const subs = Array.isArray(topic.subCategories) ? topic.subCategories : (topic.subCategory ? [topic.subCategory] : []);
+                editSubContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.checked = subs.includes(cb.value);
+                });
+            }
         }
+
+        // (primary vs additional no longer used; keep all checked as above)
 
         // Show modal
         const modal = document.getElementById('edit-topic-modal');
@@ -868,8 +1086,16 @@ class DSASpacedRepetitionTool {
         const form = document.getElementById('edit-topic-form');
         if (form) {
             form.reset();
-            this.handleCategorySelection('', 'edit');
-            this.handleSubCategorySelection('', 'edit');
+            this.updateSubcategoryFromSelected('edit');
+            // Clear additional categories checkboxes
+            const editContainer = document.getElementById('edit-topic-additional-categories');
+            if (editContainer) {
+                editContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+            const editSub = document.getElementById('edit-topic-subcategories');
+            if (editSub) {
+                editSub.innerHTML = '';
+            }
         }
     }
 
@@ -888,16 +1114,12 @@ class DSASpacedRepetitionTool {
         const formData = new FormData(form);
 
         const name = formData.get('name')?.trim() || '';
-        const selectedCategory = formData.get('category') || '';
-        const newCategoryName = formData.get('newCategory')?.trim() || '';
-        const selectedSubCategory = formData.get('subcategory') || '';
+        // Sub-categories via checkboxes
+        const selectedSubCategories = Array.from(document.querySelectorAll('#edit-topic-subcategories input[type="checkbox"]:checked')).map(cb => cb.value);
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
-        // Get additional categories selections (multi-select)
-        const editAdditionalCategoriesSelectEl = document.getElementById('edit-topic-additional-categories');
-        const additionalCategories = editAdditionalCategoriesSelectEl
-            ? Array.from(editAdditionalCategoriesSelectEl.selectedOptions).map(o => o.value)
-            : [];
+        // Get additional categories selections (checkboxes)
+        const additionalCategories = Array.from(document.querySelectorAll('#edit-topic-additional-categories input[type="checkbox"]:checked')).map(cb => cb.value);
 
         // Validate topic name
         if (!name) {
@@ -905,49 +1127,14 @@ class DSASpacedRepetitionTool {
             return;
         }
 
-        let finalCategory = selectedCategory;
-        let finalSubCategory = selectedSubCategory;
-
-        // Handle new category creation
-        if (selectedCategory === 'add-new') {
-            if (!newCategoryName) {
-                this.showAlert('Please enter a category name.', 'error');
-                return;
-            }
-
-            const createdCategory = this.addNewCategory(newCategoryName);
-            if (!createdCategory) {
-                return;
-            }
-            finalCategory = createdCategory;
-            finalSubCategory = '';
-        }
-
-        // Validate category selection
-        if (!finalCategory || finalCategory === 'add-new') {
-            this.showAlert('Please select a category.', 'error');
+        // Validate category selection via checkboxes
+        if (!additionalCategories || additionalCategories.length === 0) {
+            this.showAlert('Please select at least one category.', 'error');
             return;
         }
 
-        // Handle new sub-category creation
-        if (selectedSubCategory === 'add-new') {
-            if (!newSubCategoryName) {
-                this.showAlert('Please enter a sub-category name.', 'error');
-                return;
-            }
-
-            const createdSubCategory = this.addNewSubCategory(finalCategory, newSubCategoryName);
-            if (!createdSubCategory) {
-                return;
-            }
-            finalSubCategory = createdSubCategory;
-        }
-
-        // Validate sub-category selection
-        if (!finalSubCategory || finalSubCategory === 'add-new') {
-            this.showAlert('Please select a sub-category.', 'error');
-            return;
-        }
+        // Optional sub-categories (multi-select)
+        let finalSubCategories = [...selectedSubCategories];
 
         // Check for duplicate topic names (excluding current topic)
         const exists = this.topics.some(topic =>
@@ -963,13 +1150,14 @@ class DSASpacedRepetitionTool {
         // Update topic
         const topicIndex = this.topics.findIndex(t => t.id === this.editingTopicId);
         if (topicIndex !== -1) {
-            const categories = Array.from(new Set([finalCategory, ...additionalCategories].filter(Boolean)));
+            const categories = Array.from(new Set(additionalCategories));
             this.topics[topicIndex] = {
                 ...this.topics[topicIndex],
                 name: name,
-                category: finalCategory,
+                category: categories[0] || '',
                 categories: categories,
-                subCategory: finalSubCategory,
+                subCategory: finalSubCategories[0] || '',
+                subCategories: finalSubCategories,
                 description: description
             };
 
@@ -983,12 +1171,18 @@ class DSASpacedRepetitionTool {
     }
 
     deleteTopic(topicId) {
-        if (confirm('Are you sure you want to delete this topic?')) {
+        this.showConfirmDialog({
+            title: 'Delete Topic',
+            message: 'Are you sure you want to delete this topic? This action cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        }).then((ok) => {
+            if (!ok) return;
             this.topics = this.topics.filter(topic => topic.id !== topicId);
             this.saveToCloud();
             this.updateDashboard();
             this.showAlert('Topic deleted successfully!', 'success');
-        }
+        });
     }
 
     // Dashboard Management
@@ -1033,7 +1227,12 @@ class DSASpacedRepetitionTool {
         }
 
         if (this.selectedSubCategoryFilter !== 'all') {
-            filtered = filtered.filter(topic => topic.subCategory === this.selectedSubCategoryFilter);
+            filtered = filtered.filter(topic => {
+                if (Array.isArray(topic.subCategories)) {
+                    return topic.subCategories.includes(this.selectedSubCategoryFilter);
+                }
+                return topic.subCategory === this.selectedSubCategoryFilter;
+            });
         }
 
         return filtered;
@@ -1079,7 +1278,7 @@ class DSASpacedRepetitionTool {
                     </div>
                     <div class="topic-category">
                         ${categoriesHtml}
-                        <span class="status status--success">${this.escapeHtml(topic.subCategory || 'No Sub-Category')}</span>
+                        ${(() => { const subs = Array.isArray(topic.subCategories) && topic.subCategories.length > 0 ? topic.subCategories : (topic.subCategory ? [topic.subCategory] : []); return subs.length ? subs.map(s => `<span class=\"status status--success\">${this.escapeHtml(s)}</span>`).join(' ') : '<span class=\"status status--success\">No Sub-Category</span>'; })()}
                     </div>
                     <p class="topic-description">${this.escapeHtml(topic.description || 'No description provided.')}</p>
                     <div class="topic-meta">
@@ -1163,9 +1362,42 @@ class DSASpacedRepetitionTool {
                 : (currentTopic.category || '');
             categoryEl.textContent = cats;
         }
-        if (subcategoryEl) subcategoryEl.textContent = currentTopic.subCategory || 'No Sub-Category';
+        if (subcategoryEl) {
+            const subs = Array.isArray(currentTopic.subCategories) && currentTopic.subCategories.length > 0
+                ? currentTopic.subCategories.join(', ')
+                : (currentTopic.subCategory || 'No Sub-Category');
+            subcategoryEl.textContent = subs;
+        }
         if (nameEl) nameEl.textContent = currentTopic.name;
         if (descEl) descEl.textContent = currentTopic.description || 'No description provided.';
+
+        // Populate and sync the question picker
+        const questionPicker = document.getElementById('question-picker');
+        if (questionPicker) {
+            const completedIds = new Set(this.reviewSession.completed.map(c => c.topic.id));
+            // Build options list: only remaining items are enabled; completed are shown but disabled
+            questionPicker.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Pick question...';
+            placeholder.disabled = true;
+            questionPicker.appendChild(placeholder);
+
+            this.reviewSession.items.forEach((item, idx) => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                const isCompleted = completedIds.has(item.id);
+                const labelIdx = idx + 1;
+                // Trim overly long names for compactness
+                const name = item.name && item.name.length > 60 ? item.name.slice(0, 57) + '…' : (item.name || 'Untitled');
+                opt.textContent = `${labelIdx}. ${name}`;
+                opt.disabled = isCompleted;
+                questionPicker.appendChild(opt);
+            });
+
+            questionPicker.disabled = false;
+            questionPicker.value = currentTopic.id;
+        }
     }
 
     answerReview(difficulty) {
@@ -1212,7 +1444,9 @@ class DSASpacedRepetitionTool {
             newTopic.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
         );
 
-        newTopic.nextReviewDate = this.addDaysToDate(this.getCurrentDate(), newTopic.interval);
+        const todayStr = this.getCurrentDate();
+        newTopic.nextReviewDate = this.addDaysToDate(todayStr, newTopic.interval);
+        newTopic.lastReviewedDate = todayStr;
 
         return newTopic;
     }
@@ -1237,20 +1471,38 @@ class DSASpacedRepetitionTool {
     }
 
     endReviewSession() {
-        if (confirm('Are you sure you want to end the review session? Your progress will be saved.')) {
+        this.showConfirmDialog({
+            title: 'End Review Session',
+            message: 'Are you sure you want to end the review session? Your progress will be saved.',
+            confirmText: 'End Session',
+            cancelText: 'Continue Review'
+        }).then((ok) => {
+            if (!ok) return;
             this.completeReviewSession();
-        }
+        });
     }
 
     // Utility Functions
     getCurrentDate() {
-        return new Date().toISOString().split('T')[0];
+        // Local, timezone-safe YYYY-MM-DD (avoids UTC off-by-one issues)
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
     }
 
     addDaysToDate(dateString, days) {
-        const date = new Date(dateString);
+        // Interprets the input as a local date and adds days locally
+        const [y, m, d] = dateString.split('-').map(Number);
+        const date = new Date(y, (m || 1) - 1, d || 1);
+        date.setHours(0, 0, 0, 0);
         date.setDate(date.getDate() + days);
-        return date.toISOString().split('T')[0];
+        const yy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yy}-${mm}-${dd}`;
     }
 
     formatDate(dateString) {
@@ -1264,9 +1516,7 @@ class DSASpacedRepetitionTool {
 
     getCompletedToday() {
         const today = this.getCurrentDate();
-        return this.topics.filter(topic => {
-            return topic.nextReviewDate > today && topic.repetitions > 0;
-        }).length;
+        return this.topics.filter(topic => topic.lastReviewedDate === today).length;
     }
 
     escapeHtml(text) {
