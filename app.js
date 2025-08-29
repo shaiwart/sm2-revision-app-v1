@@ -1171,12 +1171,18 @@ class DSASpacedRepetitionTool {
     }
 
     deleteTopic(topicId) {
-        if (confirm('Are you sure you want to delete this topic?')) {
+        this.showConfirmDialog({
+            title: 'Delete Topic',
+            message: 'Are you sure you want to delete this topic? This action cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel'
+        }).then((ok) => {
+            if (!ok) return;
             this.topics = this.topics.filter(topic => topic.id !== topicId);
             this.saveToCloud();
             this.updateDashboard();
             this.showAlert('Topic deleted successfully!', 'success');
-        }
+        });
     }
 
     // Dashboard Management
@@ -1465,9 +1471,15 @@ class DSASpacedRepetitionTool {
     }
 
     endReviewSession() {
-        if (confirm('Are you sure you want to end the review session? Your progress will be saved.')) {
+        this.showConfirmDialog({
+            title: 'End Review Session',
+            message: 'Are you sure you want to end the review session? Your progress will be saved.',
+            confirmText: 'End Session',
+            cancelText: 'Continue Review'
+        }).then((ok) => {
+            if (!ok) return;
             this.completeReviewSession();
-        }
+        });
     }
 
     // Utility Functions
