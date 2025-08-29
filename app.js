@@ -1527,25 +1527,26 @@ class DSASpacedRepetitionTool {
     }
 
     showAlert(message, type = 'info') {
-        // Remove existing alerts of the same type
-        const existingAlerts = document.querySelectorAll('.alert');
-        existingAlerts.forEach(alert => {
-            if (alert.classList.contains(`alert--${type}`)) {
-                alert.remove();
-            }
-        });
+        // Create or find a top-right toast stack
+        let stack = document.getElementById('toast-container');
+        if (!stack) {
+            stack = document.createElement('div');
+            stack.id = 'toast-container';
+            document.body.appendChild(stack);
+        }
+
+        // Optionally dedupe by same text+type to prevent spam
+        const existing = Array.from(stack.querySelectorAll(`.alert.alert--${type}`)).find(a => a.textContent === message);
+        if (existing) {
+            // refresh its timer by removing and re-adding
+            existing.remove();
+        }
 
         const alert = document.createElement('div');
         alert.className = `alert alert--${type}`;
+        alert.setAttribute('role', 'alert');
         alert.textContent = message;
-
-        const container = document.querySelector('.container');
-        const header = container.querySelector('.header');
-        if (header) {
-            container.insertBefore(alert, header.nextSibling);
-        } else {
-            container.insertBefore(alert, container.firstChild);
-        }
+        stack.appendChild(alert);
 
         // Auto-remove after 5 seconds
         setTimeout(() => {
