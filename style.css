@@ -308,6 +308,8 @@ html {
   box-sizing: border-box;
   /* Reserve space for vertical scrollbar to avoid layout shift */
   scrollbar-gutter: stable;
+  /* Prevent horizontal scrollbar caused by 100vw edge-to-edge bars */
+  overflow-x: hidden;
 }
 
 body {
@@ -793,10 +795,52 @@ body {
 
 /* Header polish */
 .header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
   margin-bottom: calc(var(--space-32) + var(--space-16));
-  position: relative;
+  padding: var(--space-12) var(--space-16);
+  background: var(--color-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
+  /* Make header span full viewport width even inside centered container */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  /* Pull up to touch the top (container has top padding) */
+  margin-top: calc(-1 * var(--space-24));
 }
+.header__left { display: inline-flex; align-items: center; gap: var(--space-8); }
+.brand__logo {
+  font-size: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, rgba(var(--color-success-rgb,33,128,141),0.12), rgba(0,0,0,0));
+  border: 1px solid var(--color-card-border);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.brand__name {
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+}
+.header__right .btn {
+  border-radius: var(--radius-full);
+}
+
+@media (max-width: 640px) {
+  .header {
+    padding: var(--space-10) var(--space-12);
+    /* Adjust top pull for smaller container padding */
+    margin-top: calc(-1 * var(--space-16));
+  }
+}
+.header__right { display: inline-flex; align-items: center; gap: var(--space-8); }
 .header h1 {
   letter-spacing: -0.02em;
 }
@@ -813,13 +857,7 @@ body {
   border: 1px solid var(--color-card-border);
 }
 
-/* Theme toggle button in header */
-.theme-toggle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  transform: translateY(-10%);
-}
+/* Theme toggle is a normal button now (right side) */
 .navigation .nav-btn {
   border-radius: var(--radius-full);
 }
@@ -1439,6 +1477,17 @@ body {
 
   .navigation {
     flex-direction: column;
+    align-items: stretch;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    gap: var(--space-8);
+  }
+
+  .navigation .nav-btn {
+    width: 100%;
+    border-radius: var(--radius-lg);
   }
 
   .nav-btn {
