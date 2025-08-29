@@ -406,6 +406,8 @@ class DSASpacedRepetitionTool {
     populateCategoryDropdowns() {
         const categorySelect = document.getElementById('topic-category');
         const editCategorySelect = document.getElementById('edit-topic-category');
+        const additionalCategoriesSelect = document.getElementById('topic-additional-categories');
+        const editAdditionalCategoriesSelect = document.getElementById('edit-topic-additional-categories');
         const categoryFilter = document.getElementById('category-filter');
 
         // Sort categories alphabetically
@@ -445,6 +447,28 @@ class DSASpacedRepetitionTool {
             newCategoryOption.textContent = 'Add New Category...';
             newCategoryOption.style.fontStyle = 'italic';
             editCategorySelect.appendChild(newCategoryOption);
+        }
+
+        // Populate additional categories (add view)
+        if (additionalCategoriesSelect) {
+            additionalCategoriesSelect.innerHTML = '';
+            sortedCategories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                additionalCategoriesSelect.appendChild(option);
+            });
+        }
+
+        // Populate additional categories (edit view)
+        if (editAdditionalCategoriesSelect) {
+            editAdditionalCategoriesSelect.innerHTML = '';
+            sortedCategories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                editAdditionalCategoriesSelect.appendChild(option);
+            });
         }
 
         // Populate filter dropdown
@@ -672,6 +696,11 @@ class DSASpacedRepetitionTool {
         const selectedSubCategory = formData.get('subcategory') || '';
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
+        // Get additional categories selections (multi-select)
+        const additionalCategoriesSelectEl = document.getElementById('topic-additional-categories');
+        const additionalCategories = additionalCategoriesSelectEl
+            ? Array.from(additionalCategoriesSelectEl.selectedOptions).map(o => o.value)
+            : [];
 
         // Validate topic name
         if (!name) {
@@ -736,10 +765,12 @@ class DSASpacedRepetitionTool {
         }
 
         // Create new topic
+        const categories = Array.from(new Set([finalCategory, ...additionalCategories].filter(Boolean)));
         const newTopic = {
             id: Date.now().toString(),
             name: name,
-            category: finalCategory,
+            category: finalCategory, // primary (backward-compatible)
+            categories: categories,
             subCategory: finalSubCategory,
             description: description,
             easeFactor: 2.5,
@@ -806,6 +837,18 @@ class DSASpacedRepetitionTool {
             document.getElementById('edit-topic-subcategory').value = topic.subCategory;
         }, 100);
 
+        // Set additional categories selections (exclude primary)
+        const editAdditionalSelect = document.getElementById('edit-topic-additional-categories');
+        if (editAdditionalSelect) {
+            const allCats = topic.categories && Array.isArray(topic.categories)
+                ? topic.categories
+                : (topic.category ? [topic.category] : []);
+            const additional = allCats.filter(c => c !== topic.category);
+            Array.from(editAdditionalSelect.options).forEach(opt => {
+                opt.selected = additional.includes(opt.value);
+            });
+        }
+
         // Show modal
         const modal = document.getElementById('edit-topic-modal');
         if (modal) {
@@ -850,6 +893,11 @@ class DSASpacedRepetitionTool {
         const selectedSubCategory = formData.get('subcategory') || '';
         const newSubCategoryName = formData.get('newSubcategory')?.trim() || '';
         const description = formData.get('description')?.trim() || '';
+        // Get additional categories selections (multi-select)
+        const editAdditionalCategoriesSelectEl = document.getElementById('edit-topic-additional-categories');
+        const additionalCategories = editAdditionalCategoriesSelectEl
+            ? Array.from(editAdditionalCategoriesSelectEl.selectedOptions).map(o => o.value)
+            : [];
 
         // Validate topic name
         if (!name) {
@@ -915,10 +963,12 @@ class DSASpacedRepetitionTool {
         // Update topic
         const topicIndex = this.topics.findIndex(t => t.id === this.editingTopicId);
         if (topicIndex !== -1) {
+            const categories = Array.from(new Set([finalCategory, ...additionalCategories].filter(Boolean)));
             this.topics[topicIndex] = {
                 ...this.topics[topicIndex],
                 name: name,
                 category: finalCategory,
+                categories: categories,
                 subCategory: finalSubCategory,
                 description: description
             };
@@ -974,7 +1024,12 @@ class DSASpacedRepetitionTool {
         let filtered = this.topics;
 
         if (this.selectedCategoryFilter !== 'all') {
-            filtered = filtered.filter(topic => topic.category === this.selectedCategoryFilter);
+            filtered = filtered.filter(topic => {
+                if (Array.isArray(topic.categories)) {
+                    return topic.categories.includes(this.selectedCategoryFilter);
+                }
+                return topic.category === this.selectedCategoryFilter;
+            });
         }
 
         if (this.selectedSubCategoryFilter !== 'all') {
@@ -1009,6 +1064,10 @@ class DSASpacedRepetitionTool {
 
         container.innerHTML = topics.map(topic => {
             const dueStatus = this.getDueStatus(topic);
+            const categories = Array.isArray(topic.categories) && topic.categories.length > 0
+                ? topic.categories
+                : (topic.category ? [topic.category] : []);
+            const categoriesHtml = categories.map(c => `<span class="status status--info">${this.escapeHtml(c)}</span>`).join(' ');
             return `
                 <div class="topic-item">
                     <div class="topic-header">
@@ -1019,7 +1078,7 @@ class DSASpacedRepetitionTool {
                         </div>
                     </div>
                     <div class="topic-category">
-                        <span class="status status--info">${this.escapeHtml(topic.category)}</span>
+                        ${categoriesHtml}
                         <span class="status status--success">${this.escapeHtml(topic.subCategory || 'No Sub-Category')}</span>
                     </div>
                     <p class="topic-description">${this.escapeHtml(topic.description || 'No description provided.')}</p>
@@ -1098,7 +1157,12 @@ class DSASpacedRepetitionTool {
         const nameEl = document.getElementById('current-topic-name');
         const descEl = document.getElementById('current-topic-description');
 
-        if (categoryEl) categoryEl.textContent = currentTopic.category;
+        if (categoryEl) {
+            const cats = Array.isArray(currentTopic.categories) && currentTopic.categories.length > 0
+                ? currentTopic.categories.join(', ')
+                : (currentTopic.category || '');
+            categoryEl.textContent = cats;
+        }
         if (subcategoryEl) subcategoryEl.textContent = currentTopic.subCategory || 'No Sub-Category';
         if (nameEl) nameEl.textContent = currentTopic.name;
         if (descEl) descEl.textContent = currentTopic.description || 'No description provided.';

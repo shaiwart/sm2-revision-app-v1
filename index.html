@@ -79,10 +79,18 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="topic-category">Category *</label>
+                            <label class="form-label" for="topic-category">Primary Category *</label>
                             <select id="topic-category" name="category" class="form-control" required>
                                 <option value="">Select a category...</option>
                             </select>
+                        </div>
+
+                        <!-- Additional Categories (optional, multi-select) -->
+                        <div class="form-group">
+                            <label class="form-label" for="topic-additional-categories">Additional Categories (optional)</label>
+                            <select id="topic-additional-categories" name="additionalCategories" class="form-control" multiple>
+                            </select>
+                            <small class="form-text">Hold Ctrl/Cmd to select multiple.</small>
                         </div>
 
                         <!-- New Category Input (Hidden by default) -->
@@ -205,10 +213,18 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="edit-topic-category">Category *</label>
+                            <label class="form-label" for="edit-topic-category">Primary Category *</label>
                             <select id="edit-topic-category" name="category" class="form-control" required>
                                 <option value="">Select a category...</option>
                             </select>
+                        </div>
+
+                        <!-- Additional Categories for Edit (optional, multi-select) -->
+                        <div class="form-group">
+                            <label class="form-label" for="edit-topic-additional-categories">Additional Categories (optional)</label>
+                            <select id="edit-topic-additional-categories" name="additionalCategories" class="form-control" multiple>
+                            </select>
+                            <small class="form-text">Hold Ctrl/Cmd to select multiple.</small>
                         </div>
 
                         <!-- New Category Input for Edit (Hidden by default) -->

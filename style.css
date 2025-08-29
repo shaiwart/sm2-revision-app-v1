@@ -306,11 +306,20 @@ html {
   background-color: var(--color-background);
   -webkit-font-smoothing: antialiased;
   box-sizing: border-box;
+  /* Reserve space for vertical scrollbar to avoid layout shift */
+  scrollbar-gutter: stable;
 }
 
 body {
   margin: 0;
   padding: 0;
+}
+
+/* Fallback for browsers without scrollbar-gutter support */
+@supports not (scrollbar-gutter: stable) {
+  html {
+    overflow-y: scroll;
+  }
 }
 
 *,
