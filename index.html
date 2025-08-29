@@ -1,19 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Revision tool (SM2)</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Revision Notebook (SM2)</title>
     <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#21808d" />
+    <meta name="description" content="Revision Notebook – spaced repetition (SM-2) for DSA topics." />
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Header: website name (left) and theme toggle (right) -->
         <header class="header">
-            <button id="theme-toggle" class="btn btn--outline btn--sm theme-toggle" aria-pressed="false" aria-label="Toggle dark mode">🌞</button>
-            <h1>Revision tool (SM2)</h1>
-            <p class="text-secondary">Master data structures and algorithms through spaced repetition</p>
+            <div class="header__left">
+                <span class="brand__logo" aria-hidden="true">📓</span>
+                <span class="brand__name">Revision Notebook (SM2)</span>
+            </div>
+            <div class="header__right">
+                <button id="theme-toggle" class="btn btn--outline btn--sm" aria-pressed="false" aria-label="Toggle dark mode">🌞</button>
+            </div>
         </header>
 
         <!-- Navigation -->
@@ -76,7 +83,7 @@
                     <form id="add-topic-form">
                         <div class="form-group">
                             <label class="form-label" for="topic-name">Topic Name *</label>
-                            <input type="text" id="topic-name" name="name" class="form-control" required>
+                            <input type="text" id="topic-name" name="name" class="form-control" required />
                         </div>
 
                         <!-- Categories (choose one or more) -->
@@ -84,7 +91,7 @@
                             <div class="inline-header">
                                 <label class="form-label" id="topic-additional-categories-label">Categories *</label>
                                 <div class="inline-actions">
-                                    <input type="text" id="add-new-category-name" class="form-control input-sm" placeholder="New category...">
+                                    <input type="text" id="add-new-category-name" class="form-control input-sm" placeholder="New category..." />
                                     <button type="button" id="add-category-btn" class="btn btn--outline btn--sm">Add Category</button>
                                 </div>
                             </div>
@@ -96,7 +103,7 @@
                             <div class="inline-header">
                                 <label class="form-label" id="topic-subcategories-label">Sub-Categories (optional)</label>
                                 <div class="inline-actions">
-                                    <input type="text" id="add-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category...">
+                                    <input type="text" id="add-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category..." />
                                     <select id="add-subcategory-parent" class="form-control input-sm"></select>
                                     <button type="button" id="add-subcategory-btn" class="btn btn--outline btn--sm">Add Sub-Category</button>
                                 </div>
@@ -104,17 +111,9 @@
                             <div id="topic-subcategories" class="checkbox-group" role="group" aria-labelledby="topic-subcategories-label"></div>
                         </div>
 
-                        <!-- New Sub-Category Input (Hidden by default) -->
-                        <div id="new-subcategory-group" class="form-group" style="display: none;">
-                            <label class="form-label" for="new-subcategory-name">New Sub-Category Name *</label>
-                            <input type="text" id="new-subcategory-name" name="newSubcategory" class="form-control">
-                            <small class="form-text">Enter a unique sub-category name for this category</small>
-                        </div>
-
                         <div class="form-group">
                             <label class="form-label" for="topic-description">Description</label>
-                            <textarea id="topic-description" name="description" class="form-control" rows="3"
-                                placeholder="Describe the concept, key points, or techniques..."></textarea>
+                            <textarea id="topic-description" name="description" class="form-control" rows="3" placeholder="Describe the concept, key points, or techniques..."></textarea>
                         </div>
 
                         <div class="form-actions">
@@ -159,18 +158,10 @@
                 </div>
 
                 <div class="review-actions">
-                    <button class="btn btn--outline difficulty-btn" data-difficulty="0">
-                        Again (< 1 min)
-                    </button>
-                    <button class="btn btn--outline difficulty-btn" data-difficulty="1">
-                        Hard (< 6 min)
-                    </button>
-                    <button class="btn btn--outline difficulty-btn" data-difficulty="2">
-                        Good (< 10 min)
-                    </button>
-                    <button class="btn btn--primary difficulty-btn" data-difficulty="3">
-                        Easy (4 days)
-                    </button>
+                    <button class="btn btn--outline difficulty-btn" data-difficulty="0">Again (&lt; 1 min)</button>
+                    <button class="btn btn--outline difficulty-btn" data-difficulty="1">Hard (&lt; 6 min)</button>
+                    <button class="btn btn--outline difficulty-btn" data-difficulty="2">Good (&lt; 10 min)</button>
+                    <button class="btn btn--primary difficulty-btn" data-difficulty="3">Easy (4 days)</button>
                 </div>
             </div>
         </div>
@@ -179,7 +170,7 @@
         <div id="review-complete-view" class="view">
             <div class="card">
                 <div class="card__body text-center">
-                    <h2>Review Session Complete! 🎉</h2>
+                    <h2>Review Session Complete!</h2>
                     <div class="completion-stats">
                         <div class="stat-item">
                             <span id="topics-reviewed" class="stat-number">0</span>
@@ -197,60 +188,59 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Edit Topic Modal -->
-        <div id="edit-topic-modal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Edit Topic</h3>
-                    <button id="close-edit-modal" class="btn-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <form id="edit-topic-form">
-                        <input type="hidden" id="edit-topic-id" name="id">
+    <!-- Edit Topic Modal -->
+    <div id="edit-topic-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Topic</h3>
+                <button id="close-edit-modal" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-topic-form">
+                    <input type="hidden" id="edit-topic-id" name="id" />
 
-                        <div class="form-group">
-                            <label class="form-label" for="edit-topic-name">Topic Name *</label>
-                            <input type="text" id="edit-topic-name" name="name" class="form-control" required>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-topic-name">Topic Name *</label>
+                        <input type="text" id="edit-topic-name" name="name" class="form-control" required />
+                    </div>
 
-                        <!-- Categories for Edit -->
-                        <div class="form-group">
-                            <div class="inline-header">
-                                <label class="form-label" id="edit-topic-additional-categories-label">Categories *</label>
-                                <div class="inline-actions">
-                                    <input type="text" id="edit-new-category-name" class="form-control input-sm" placeholder="New category...">
-                                    <button type="button" id="edit-category-btn" class="btn btn--outline btn--sm">Add Category</button>
-                                </div>
+                    <!-- Categories for Edit -->
+                    <div class="form-group">
+                        <div class="inline-header">
+                            <label class="form-label" id="edit-topic-additional-categories-label">Categories *</label>
+                            <div class="inline-actions">
+                                <input type="text" id="edit-new-category-name" class="form-control input-sm" placeholder="New category..." />
+                                <button type="button" id="edit-category-btn" class="btn btn--outline btn--sm">Add Category</button>
                             </div>
-                            <div id="edit-topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="edit-topic-additional-categories-label"></div>
                         </div>
+                        <div id="edit-topic-additional-categories" class="checkbox-group" role="group" aria-labelledby="edit-topic-additional-categories-label"></div>
+                    </div>
 
-                        <!-- Sub-Categories for Edit (optional) -->
-                        <div class="form-group">
-                            <div class="inline-header">
-                                <label class="form-label" id="edit-topic-subcategories-label">Sub-Categories (optional)</label>
-                                <div class="inline-actions">
-                                    <input type="text" id="edit-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category...">
-                                    <select id="edit-subcategory-parent" class="form-control input-sm"></select>
-                                    <button type="button" id="edit-subcategory-btn" class="btn btn--outline btn--sm">Add Sub-Category</button>
-                                </div>
+                    <!-- Sub-Categories for Edit (optional) -->
+                    <div class="form-group">
+                        <div class="inline-header">
+                            <label class="form-label" id="edit-topic-subcategories-label">Sub-Categories (optional)</label>
+                            <div class="inline-actions">
+                                <input type="text" id="edit-new-subcategory-name" class="form-control input-sm" placeholder="New sub-category..." />
+                                <select id="edit-subcategory-parent" class="form-control input-sm"></select>
+                                <button type="button" id="edit-subcategory-btn" class="btn btn--outline btn--sm">Add Sub-Category</button>
                             </div>
-                            <div id="edit-topic-subcategories" class="checkbox-group" role="group" aria-labelledby="edit-topic-subcategories-label"></div>
                         </div>
+                        <div id="edit-topic-subcategories" class="checkbox-group" role="group" aria-labelledby="edit-topic-subcategories-label"></div>
+                    </div>
 
-                        <div class="form-group">
-                            <label class="form-label" for="edit-topic-description">Description</label>
-                            <textarea id="edit-topic-description" name="description" class="form-control" rows="3"
-                                placeholder="Describe the concept, key points, or techniques..."></textarea>
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-topic-description">Description</label>
+                        <textarea id="edit-topic-description" name="description" class="form-control" rows="3" placeholder="Describe the concept, key points, or techniques..."></textarea>
+                    </div>
 
-                        <div class="form-actions">
-                            <button type="submit" class="btn btn--primary">Update Topic</button>
-                            <button type="button" id="cancel-edit-topic" class="btn btn--outline">Cancel</button>
-                        </div>
-                    </form>
-                </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn--primary">Update Topic</button>
+                        <button type="button" id="cancel-edit-topic" class="btn btn--outline">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -287,3 +277,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
