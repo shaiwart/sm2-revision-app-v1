@@ -941,6 +941,7 @@ body {
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   margin-bottom: var(--space-8);
+  white-space: pre-wrap; /* preserve user-entered newlines and spacing */
 }
 
 .topic-meta {
@@ -1048,6 +1049,7 @@ body {
   color: var(--color-text-secondary);
   margin-bottom: var(--space-24);
   line-height: var(--line-height-normal);
+  white-space: pre-wrap; /* preserve formatting like in textarea */
 }
 
 .review-question p {
