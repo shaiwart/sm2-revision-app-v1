@@ -368,16 +368,25 @@ class DSASpacedRepetitionTool {
             };
             dueDaysFilter.addEventListener('input', handler);
             dueDaysFilter.addEventListener('change', handler);
+            // reflect current state if any
+            if (this.overdueDaysFilter !== '' && Number.isFinite(this.overdueDaysFilter)) {
+                dueDaysFilter.value = String(this.overdueDaysFilter);
+            }
         }
 
         // Overdue operator change (>= or <=)
         const dueDaysOperator = document.getElementById('overdue-days-operator');
         if (dueDaysOperator) {
-            dueDaysOperator.addEventListener('change', (e) => {
-                const val = e.target.value === 'lte' ? 'lte' : 'gte';
-                this.overdueDaysOperator = val;
+            const opHandler = (e) => {
+                const val = (e.target && typeof e.target.value === 'string') ? e.target.value.toLowerCase() : '';
+                this.overdueDaysOperator = (val === 'lte') ? 'lte' : 'gte';
                 this.updateDashboard();
-            });
+            };
+            dueDaysOperator.addEventListener('change', opHandler);
+            // Some browsers fire input for selects; add for consistency
+            dueDaysOperator.addEventListener('input', opHandler);
+            // set current value from state
+            dueDaysOperator.value = this.overdueDaysOperator;
         }
 
         // Review buttons
