@@ -1,4 +1,4 @@
-// DSA Spaced Repetition Tool - Enhanced with Sub-Categories and Edit Functionality
+﻿// DSA Spaced Repetition Tool - Enhanced with Sub-Categories and Edit Functionality
 
 class DSASpacedRepetitionTool {
     constructor() {
@@ -113,6 +113,9 @@ class DSASpacedRepetitionTool {
         this.selectedCategoryFilter = 'all';
         this.selectedSubCategoryFilter = 'all';
         this.editingTopicId = null;
+        this.searchQuery = '';
+        this.sortOption = 'next-asc';
+        this.reviewLog = [];
 
         this.init();
     }
@@ -185,7 +188,8 @@ class DSASpacedRepetitionTool {
             body: JSON.stringify({
                 topics: this.topics,
                 categories: this.categories,
-                subCategories: this.subCategories
+                subCategories: this.subCategories,
+                reviewLog: this.reviewLog
             })
             });
         } catch (error) {
@@ -205,11 +209,13 @@ class DSASpacedRepetitionTool {
             this.topics = data.record.topics || this.sampleTopics;
             this.categories = data.record.categories || this.defaultCategories;
             this.subCategories = data.record.subCategories || this.defaultSubCategories;
+            this.reviewLog = Array.isArray(data.record.reviewLog) ? data.record.reviewLog : [];
         } catch (error) {
             console.error("Error loading:", error);
             this.topics = [...this.sampleTopics];
             this.categories = [...this.defaultCategories];
             this.subCategories = { ...this.defaultSubCategories };
+            this.reviewLog = [];
         }
     }
 
@@ -329,7 +335,25 @@ class DSASpacedRepetitionTool {
             });
         }
 
-        // Review buttons
+        // Search
+        const topicSearch = document.getElementById('topic-search');
+        if (topicSearch) {
+            const handler = (e) => {
+                this.searchQuery = e.target.value || '';
+                this.updateDashboard();
+            };
+            topicSearch.addEventListener('input', handler);
+            topicSearch.addEventListener('change', handler);
+        }
+
+        // Sort
+        const topicSort = document.getElementById('topic-sort');
+        if (topicSort) {
+            topicSort.addEventListener('change', (e) => {
+                this.sortOption = e.target.value || 'next-asc';
+                this.updateDashboard();
+            });
+        }        // Review buttons
         const startReviewBtn = document.getElementById('start-review-btn');
         if (startReviewBtn) {
             startReviewBtn.addEventListener('click', () => {
@@ -363,11 +387,18 @@ class DSASpacedRepetitionTool {
             });
         }
 
-        // Difficulty buttons
+        // Difficulty buttons with confirmation
         document.querySelectorAll('.difficulty-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const difficulty = parseInt(e.target.getAttribute('data-difficulty'));
-                this.answerReview(difficulty);
+                const difficulty = parseInt(e.currentTarget.getAttribute('data-difficulty'));
+                const labels = {0:'Again',1:'Hard',2:'Good',3:'Easy'};
+                const label = labels[difficulty] || 'Confirm';
+                this.showConfirmDialog({
+                    title: 'Confirm Answer',
+                    message: `Mark this topic as "${label}"?`,
+                    confirmText: label,
+                    cancelText: 'Cancel'
+                }).then(ok => { if (ok) this.answerReview(difficulty); });
             });
         });
 
@@ -554,13 +585,13 @@ class DSASpacedRepetitionTool {
 
                 const label = document.createElement('label');
                 label.setAttribute('for', id);
-                label.textContent = category;
+                label.textContent = category; label.title = category;
 
                 const del = document.createElement('button');
                 del.type = 'button';
                 del.className = 'icon-btn icon-trash';
                 del.setAttribute('aria-label', `Delete category ${category}`);
-                del.textContent = '🗑';
+                del.textContent = 'ðŸ—‘';
                 del.dataset.action = 'delete-category';
                 del.dataset.category = category;
 
@@ -680,12 +711,12 @@ class DSASpacedRepetitionTool {
 
             const label = document.createElement('label');
             label.setAttribute('for', id);
-            label.textContent = subcategory;
+            label.textContent = subcategory; label.title = subcategory;
 
             const del = document.createElement('button');
             del.type = 'button';
             del.className = 'icon-btn icon-trash';
-            del.textContent = '🗑';
+            del.textContent = 'ðŸ—‘';
             del.dataset.action = 'delete-subcategory';
             del.dataset.subcategory = subcategory;
             del.dataset.parents = Array.from(map.get(subcategory)).join(',');
@@ -1207,6 +1238,16 @@ class DSASpacedRepetitionTool {
         if (totalTopicsEl) totalTopicsEl.textContent = filteredTopics.length;
         if (dueTopicsEl) dueTopicsEl.textContent = dueTopics.length;
         if (completedTodayEl) completedTodayEl.textContent = this.getCompletedToday();
+        // Due in next 7 days
+        const dueNext7El = document.getElementById('due-next-7');
+        if (dueNext7El) dueNext7El.textContent = this.getDueInNextDays(7, filteredTopics).length;
+
+        // Streaks
+        const { currentStreak, longestStreak } = this.computeStreaks();
+        const currentStreakEl = document.getElementById('current-streak');
+        const longestStreakEl = document.getElementById('longest-streak');
+        if (currentStreakEl) currentStreakEl.textContent = currentStreak;
+        if (longestStreakEl) longestStreakEl.textContent = longestStreak;
 
         // Update review button
         const reviewBtn = document.getElementById('start-review-btn');
@@ -1215,12 +1256,16 @@ class DSASpacedRepetitionTool {
             if (this.selectedCategoryFilter !== 'all' && this.selectedSubCategoryFilter !== 'all') {
                 categoryText += ` > ${this.selectedSubCategoryFilter}`;
             }
-            reviewBtn.textContent = `Start Review Session - ${categoryText} (${dueTopics.length} items)`;
+            const itemsText = `${dueTopics.length} ${dueTopics.length === 1 ? 'item' : 'items'}`;
+            reviewBtn.innerHTML = `Start Review Session<br>${this.escapeHtml(categoryText)} (${itemsText})`;
             reviewBtn.disabled = dueTopics.length === 0;
         }
 
-        // Update topics list
-        this.renderTopicsList(filteredTopics);
+        // Update topics list with search + sort
+        const displayedTopics = this.applySearchAndSort(filteredTopics);
+        this.renderTopicsList(displayedTopics);
+        // Update analytics sections
+        this.updateAnalyticsUI();
     }
 
     getFilteredTopics() {
@@ -1245,6 +1290,45 @@ class DSASpacedRepetitionTool {
         }
 
         return filtered;
+    }
+
+    applySearchAndSort(topics) {
+        const q = (this.searchQuery || '').trim().toLowerCase();
+        let list = topics;
+        if (q) {
+            list = list.filter(t => {
+                const fields = [
+                    t.name || '',
+                    t.description || '',
+                    (Array.isArray(t.categories) ? t.categories.join(' ') : (t.category || '')),
+                    (Array.isArray(t.subCategories) ? t.subCategories.join(' ') : (t.subCategory || ''))
+                ].join(' ').toLowerCase();
+                return fields.includes(q);
+            });
+        }
+
+        const option = this.sortOption || 'next-asc';
+        const toTime = (s) => {
+            if (!s) return 0;
+            const d = new Date(s);
+            return isNaN(d) ? 0 : d.getTime();
+        };
+        const cmp = (a, b, dir = 1) => (a < b ? -1 * dir : a > b ? 1 * dir : 0);
+        const byName = (a, b, dir) => cmp((a.name || '').toLowerCase(), (b.name || '').toLowerCase(), dir);
+        const byNext = (a, b, dir) => cmp(toTime(a.nextReviewDate), toTime(b.nextReviewDate), dir);
+        const byAdded = (a, b, dir) => cmp(toTime(a.dateAdded), toTime(b.dateAdded), dir);
+
+        const sorted = [...list];
+        switch (option) {
+            case 'name-asc': sorted.sort((a,b)=>byName(a,b,1)); break;
+            case 'name-desc': sorted.sort((a,b)=>byName(a,b,-1)); break;
+            case 'next-desc': sorted.sort((a,b)=>byNext(a,b,-1)); break;
+            case 'added-asc': sorted.sort((a,b)=>byAdded(a,b,1)); break;
+            case 'added-desc': sorted.sort((a,b)=>byAdded(a,b,-1)); break;
+            case 'next-asc':
+            default: sorted.sort((a,b)=>byNext(a,b,1));
+        }
+        return sorted;
     }
 
     renderTopicsList(topics) {
@@ -1292,6 +1376,7 @@ class DSASpacedRepetitionTool {
                     <p class="topic-description">${this.escapeHtml(topic.description || 'No description provided.')}</p>
                     <div class="topic-meta">
                         <span>Added: ${this.formatDate(topic.dateAdded)}</span>
+                        <span class="topic-stats">Reps: ${Number(topic.repetitions || 0)}  EF: ${Number(topic.easeFactor || 0).toFixed(2)}</span>
                         <span class="topic-due-status ${dueStatus.class}">${dueStatus.text}</span>
                     </div>
                 </div>
@@ -1304,7 +1389,12 @@ class DSASpacedRepetitionTool {
         const nextReview = topic.nextReviewDate;
 
         if (nextReview < today) {
-            return { class: 'overdue', text: 'Overdue' };
+            // Calculate how many days overdue
+            const oneDay = 24 * 60 * 60 * 1000;
+            const t = new Date(today); t.setHours(0,0,0,0);
+            const n = new Date(nextReview); n.setHours(0,0,0,0);
+            const days = Math.max(1, Math.floor((t - n) / oneDay));
+            return { class: 'overdue', text: `Overdue by ${days} day${days === 1 ? '' : 's'}` };
         } else if (nextReview === today) {
             return { class: 'due-today', text: 'Due Today' };
         } else {
@@ -1398,7 +1488,7 @@ class DSASpacedRepetitionTool {
                 const isCompleted = completedIds.has(item.id);
                 const labelIdx = idx + 1;
                 // Trim overly long names for compactness
-                const name = item.name && item.name.length > 60 ? item.name.slice(0, 57) + '…' : (item.name || 'Untitled');
+                const name = item.name && item.name.length > 60 ? item.name.slice(0, 57) + 'â€¦' : (item.name || 'Untitled');
                 opt.textContent = `${labelIdx}. ${name}`;
                 opt.disabled = isCompleted;
                 questionPicker.appendChild(opt);
@@ -1428,6 +1518,8 @@ class DSASpacedRepetitionTool {
 
         this.reviewSession.currentIndex++;
         this.updateReviewInterface();
+        // Log this answer for analytics and persist
+        this.logReview(updatedTopic.id, difficulty);
         this.saveToCloud();
     }
 
@@ -1491,7 +1583,168 @@ class DSASpacedRepetitionTool {
         });
     }
 
-    // Utility Functions
+    
+    // Analytics helpers
+    logReview(topicId, difficulty) {
+        const date = this.getCurrentDate();
+        this.reviewLog.push({ date, topicId, difficulty });
+    }
+
+    getDueInNextDays(days = 7, topics = null) {
+        const list = topics || this.topics;
+        const today = this.getCurrentDate();
+        const end = this.addDaysToDate(today, days);
+        return list.filter(t => t.nextReviewDate && t.nextReviewDate > today && t.nextReviewDate <= end);
+    }
+
+    computeStreaks() {
+        if (!Array.isArray(this.reviewLog) || this.reviewLog.length === 0) {
+            return { currentStreak: 0, longestStreak: 0 };
+        }
+        const counts = this.reviewLog.reduce((m, r) => {
+            m[r.date] = (m[r.date] || 0) + 1;
+            return m;
+        }, {});
+        const dates = Object.keys(counts).sort();
+        const oneDay = 24*60*60*1000;
+        const parse = (s)=>{ const d=new Date(s); d.setHours(0,0,0,0); return d.getTime(); };
+
+        let longest = 0; let cur = 0; let prev = null;
+        dates.forEach(s => {
+            const t = parse(s);
+            if (prev !== null && t - prev === oneDay) {
+                cur += 1;
+            } else if (prev === null || t - prev > oneDay) {
+                cur = 1;
+            }
+            longest = Math.max(longest, cur);
+            prev = t;
+        });
+
+        let current = 0;
+        const today = this.getCurrentDate();
+        let tcur = parse(today);
+        while (counts[this.formatYmdFromTime(tcur)]) {
+            current += 1;
+            tcur -= oneDay;
+        }
+        return { currentStreak: current, longestStreak: longest };
+    }
+
+    formatYmdFromTime(ms) {
+        const d = new Date(ms);
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        return `${y}-${m}-${dd}`;
+    }
+
+    updateAnalyticsUI() {
+        this.renderEfDistribution();
+        this.renderIntervalDistribution();
+        this.renderCalendarHeatmap();
+    }
+
+    renderEfDistribution() {
+        const el = document.getElementById('ef-distribution');
+        if (!el) return;
+        const buckets = [
+            { label: '1.3–1.6', min:1.3, max:1.6 },
+            { label: '1.6–2.0', min:1.6, max:2.0 },
+            { label: '2.0–2.4', min:2.0, max:2.4 },
+            { label: '2.4–2.8', min:2.4, max:2.8 },
+            { label: '2.8–3.5', min:2.8, max:3.5 }
+        ];
+        const counts = buckets.map(b => ({ label:b.label, count: this.topics.filter(t => t.easeFactor >= b.min && t.easeFactor < b.max).length }));
+        this.renderBarChart(el, counts);
+    }
+
+    renderIntervalDistribution() {
+        const el = document.getElementById('interval-distribution');
+        if (!el) return;
+        const ranges = [
+            { label:'0', test:(x)=>x===0 },
+            { label:'1', test:(x)=>x===1 },
+            { label:'2–3', test:(x)=>x>=2 && x<=3 },
+            { label:'4–7', test:(x)=>x>=4 && x<=7 },
+            { label:'8–14', test:(x)=>x>=8 && x<=14 },
+            { label:'15–30', test:(x)=>x>=15 && x<=30 },
+            { label:'31–90', test:(x)=>x>=31 && x<=90 },
+            { label:'90+', test:(x)=>x>90 },
+        ];
+        const counts = ranges.map(r => ({ label:r.label, count: this.topics.filter(t => r.test(Number(t.interval||0))).length }));
+        this.renderBarChart(el, counts);
+    }
+
+    renderBarChart(container, buckets) {
+        container.innerHTML = '';
+        const max = Math.max(1, ...buckets.map(b=>b.count));
+        buckets.forEach(b => {
+            const row = document.createElement('div');
+            row.className = 'bar-row';
+            const label = document.createElement('div');
+            label.className = 'bar-label';
+            label.textContent = b.label;
+            const barWrap = document.createElement('div');
+            barWrap.className = 'bar-wrap';
+            const bar = document.createElement('div');
+            bar.className = 'bar-fill';
+            bar.style.width = `${(b.count / max) * 100}%`;
+            const count = document.createElement('div');
+            count.className = 'bar-count';
+            count.textContent = String(b.count);
+            barWrap.appendChild(bar);
+            row.appendChild(label);
+            row.appendChild(barWrap);
+            row.appendChild(count);
+            container.appendChild(row);
+        });
+    }
+
+    renderCalendarHeatmap() {
+        const container = document.getElementById('calendar-heatmap');
+        if (!container) return;
+        const weeks = 12; // last 12 weeks
+        const days = weeks * 7;
+        const today = new Date(this.getCurrentDate());
+        today.setHours(0,0,0,0);
+        const start = new Date(today);
+        start.setDate(start.getDate() - (days - 1));
+
+        const countByDate = this.reviewLog.reduce((m, r) => {
+            m[r.date] = (m[r.date] || 0) + 1;
+            return m;
+        }, {});
+
+        const counts = Object.values(countByDate);
+        const max = counts.length ? Math.max(...counts) : 0;
+
+        container.innerHTML = '';
+        container.style.setProperty('--weeks', weeks);
+
+        for (let i = 0; i < days; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const c = countByDate[iso] || 0;
+
+            const cell = document.createElement('div');
+            cell.className = `heatmap-cell level-${this.heatmapLevel(c, max)}`;
+            cell.title = `${iso}: ${c} review${c===1?'':'s'}`;
+            container.appendChild(cell);
+        }
+    }
+
+    heatmapLevel(count, max) {
+        if (count <= 0) return 0;
+        if (max <= 1) return 1;
+        const r = count / max;
+        if (r < 0.25) return 1;
+        if (r < 0.5) return 2;
+        if (r < 0.75) return 3;
+        return 4;
+    }
+// Utility Functions
     initTheme() {
         const stored = localStorage.getItem('dsaTool_theme');
         let theme = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -1505,7 +1758,7 @@ class DSASpacedRepetitionTool {
         if (btn) {
             const isDark = theme === 'dark';
             btn.setAttribute('aria-pressed', String(isDark));
-            btn.textContent = isDark ? '🌙' : '🌞';
+            btn.textContent = isDark ? 'ðŸŒ™' : 'ðŸŒž';
             btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
         }
     }
@@ -1594,3 +1847,6 @@ class DSASpacedRepetitionTool {
 document.addEventListener('DOMContentLoaded', () => {
     new DSASpacedRepetitionTool();
 });
+
+
+
