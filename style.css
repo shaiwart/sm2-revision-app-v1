@@ -312,6 +312,22 @@ html {
   overflow-x: hidden;
 }
 
+/* Prevent iOS focus-zoom by ensuring form inputs are >=16px on phones */
+@media (max-width: 640px) {
+  input.form-control,
+  select.form-control,
+  textarea.form-control,
+  .form-control.select-compact {
+    font-size: 16px; /* iOS Safari threshold to avoid zoom */
+  }
+  /* Ensure add/edit description textareas never trigger zoom */
+  #topic-description.form-control,
+  #edit-topic-description.form-control {
+    font-size: 16px !important;
+    line-height: 1.4;
+  }
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -509,7 +525,11 @@ select.form-control {
   background-repeat: no-repeat;
   background-position: right var(--space-12) center;
   background-size: 16px;
-  padding-right: var(--space-32);
+  padding-right: calc(var(--space-32) + 8px); /* room for caret */
+  /* Prevent text from colliding with caret */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Compact select variant for dashboard filters */
@@ -1221,6 +1241,31 @@ body {
 .filters-card .form-group { margin-bottom: 0; }
 .filters-card .form-label { margin-bottom: var(--space-6); }
 
+/* Unify control heights in filters and inline add controls */
+.filters-card .form-control,
+.inline-actions .form-control {
+  height: 38px;
+  padding: var(--space-8) var(--space-12);
+}
+.filters-card select.form-control,
+.inline-actions select.form-control {
+  height: 38px;
+  padding: var(--space-8) var(--space-12);
+  background-position: right var(--space-12) center;
+  padding-right: calc(var(--space-24) + 8px);
+}
+.filters-card .btn,
+.inline-actions .btn {
+  height: 38px;
+  padding: 0 var(--space-16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Ensure small inputs/buttons match height too */
+.inline-actions .input-sm { height: 38px; }
+
+
 @media (max-width: 640px) {
   .filters-card { padding: var(--space-12); }
 }
@@ -1346,6 +1391,21 @@ body {
   max-width: 280px;
 }
 
+/* Align question picker select and End Review button heights */
+.review-header select.form-control {
+  height: 38px;
+  padding: var(--space-8) var(--space-12);
+  background-position: right var(--space-12) center;
+  padding-right: calc(var(--space-24) + 8px);
+}
+.review-header .btn {
+  height: 38px;
+  padding: 0 var(--space-16);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .review-progress {
   flex: 1;
   margin-right: var(--space-16);
@@ -1401,6 +1461,7 @@ body {
   margin-bottom: var(--space-24);
   line-height: var(--line-height-normal);
   white-space: pre-wrap; /* preserve formatting like in textarea */
+  word-break: break-all;
 }
 
 .review-question p {
@@ -1761,6 +1822,10 @@ body {
 .topics-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-12); margin-bottom: var(--space-12); }
 .toolbar { display: inline-flex; gap: var(--space-8); align-items: center; }
 .toolbar input[type="search"] { width: 260px; }
+/* Unify heights of search and sort controls */
+.topics-header .toolbar .form-control { height: 38px; padding: var(--space-8) var(--space-12); }
+.topics-header .toolbar select.form-control.select-compact { height: 38px; padding: var(--space-8) var(--space-12); background-position: right var(--space-12) center; }
+.topics-header .toolbar select.form-control.select-compact { padding-right: calc(var(--space-24) + 8px); }
 
 /* Analytics */
 .analytics-section { margin-top: var(--space-32); }
