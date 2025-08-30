@@ -353,6 +353,17 @@ class DSASpacedRepetitionTool {
                 this.sortOption = e.target.value || 'next-asc';
                 this.updateDashboard();
             });
+        }
+        // Overdue (days) filter change
+        const dueDaysFilter = document.getElementById('overdue-days-filter');
+        if (dueDaysFilter) {
+            const handler = (e) => {
+                const v = parseInt(e.target.value, 10);
+                this.overdueDaysFilter = Number.isFinite(v) && v >= 0 ? v : '';
+                this.updateDashboard();
+            };
+            dueDaysFilter.addEventListener('input', handler);
+            dueDaysFilter.addEventListener('change', handler);
         }        // Review buttons
         const startReviewBtn = document.getElementById('start-review-btn');
         if (startReviewBtn) {
@@ -1286,6 +1297,19 @@ class DSASpacedRepetitionTool {
                     return topic.subCategories.includes(this.selectedSubCategoryFilter);
                 }
                 return topic.subCategory === this.selectedSubCategoryFilter;
+            });
+        }
+
+        // Apply due-in-days filter if set
+        if (this.overdueDaysFilter !== '' && Number.isFinite(this.overdueDaysFilter)) {
+            const today = this.getCurrentDate();
+            const t = new Date(today); t.setHours(0,0,0,0);
+            const oneDay = 24 * 60 * 60 * 1000;
+            filtered = filtered.filter(topic => {
+                if (!topic.nextReviewDate || topic.nextReviewDate >= today) return false;
+                const n = new Date(topic.nextReviewDate); n.setHours(0,0,0,0);
+                const daysOverdue = Math.floor((t - n) / oneDay);
+                return daysOverdue >= this.overdueDaysFilter;
             });
         }
 

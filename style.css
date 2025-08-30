@@ -1204,7 +1204,7 @@ body {
 /* Filters Grid */
 .filters-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-16);
   margin-bottom: var(--space-16);
 }
