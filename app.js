@@ -127,6 +127,7 @@ class DSASpacedRepetitionTool {
         this.bindEvents();
         this.populateCategoryDropdowns();
         this.updateDashboard();
+        this.checkOverduePopup();
     }
 
     // Local Storage Management
@@ -1445,6 +1446,128 @@ class DSASpacedRepetitionTool {
 
         this.switchView('review');
         this.updateReviewInterface();
+    }
+
+    // Popup on load if there are items overdue by >= N days (default 7)
+    checkOverduePopup(days = 7) {
+        const count = this.countOverdueAtLeast(days, this.topics);
+        if (count > 0) {
+            const message = `${count} topic${count === 1 ? '' : 's'} overdue by ${days}+ day${count === 1 ? '' : 's'}.`;
+            this.showChoiceDialog({
+                title: 'Overdue Reviews',
+                message: message,
+                primaryText: 'Review All Due',
+                secondaryText: 'Later',
+                tertiaryText: 'Review Critical',
+            }).then(choice => {
+                if (choice === 'primary') {
+                    this.startReviewSession();
+                } else if (choice === 'tertiary') {
+                    const filteredTopics = this.getFilteredTopics();
+                    const dueItems = this.getDueItems(filteredTopics);
+                    const critical = dueItems.filter(t => this.daysOverdue(t) >= days);
+                    if (critical.length === 0) {
+                        this.showAlert('No critical topics found.', 'info');
+                        return;
+                    }
+                    this.startReviewWithItems(critical);
+                }
+            });
+        }
+    }
+
+    countOverdueAtLeast(days = 7, list = null) {
+        const topics = list || this.topics;
+        const today = this.getCurrentDate();
+        const t = new Date(today); t.setHours(0,0,0,0);
+        const oneDay = 24 * 60 * 60 * 1000;
+        let count = 0;
+        for (const topic of topics) {
+            if (!topic.nextReviewDate || topic.nextReviewDate >= today) continue;
+            const n = new Date(topic.nextReviewDate); n.setHours(0,0,0,0);
+            const diff = Math.floor((t - n) / oneDay);
+            if (diff >= days) count++;
+        }
+        return count;
+    }
+
+    daysOverdue(topic) {
+        const today = this.getCurrentDate();
+        if (!topic.nextReviewDate || topic.nextReviewDate >= today) return 0;
+        const t = new Date(today); t.setHours(0,0,0,0);
+        const n = new Date(topic.nextReviewDate); n.setHours(0,0,0,0);
+        const oneDay = 24 * 60 * 60 * 1000;
+        return Math.max(0, Math.floor((t - n) / oneDay));
+    }
+
+    startReviewWithItems(items) {
+        if (!items || items.length === 0) {
+            this.showAlert('No topics are due for review right now!', 'info');
+            return;
+        }
+        this.reviewSession = {
+            items: [...items],
+            currentIndex: 0,
+            completed: [],
+            startTime: Date.now()
+        };
+        this.switchView('review');
+        this.updateReviewInterface();
+    }
+
+    // Three-choice dialog using the existing confirm modal skeleton
+    showChoiceDialog({ title = 'Choose', message = '', primaryText = 'OK', secondaryText = 'Cancel', tertiaryText = 'Alt' } = {}) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('confirm-modal');
+            const titleEl = document.getElementById('confirm-modal-title');
+            const msgEl = document.getElementById('confirm-modal-message');
+            const btnConfirm = document.getElementById('confirm-modal-confirm');
+            const btnCancel = document.getElementById('confirm-modal-cancel');
+            const btnClose = document.getElementById('confirm-modal-close');
+            const actions = modal ? modal.querySelector('.modal-actions') : null;
+
+            if (!modal || !titleEl || !msgEl || !btnConfirm || !btnCancel || !btnClose || !actions) {
+                const ok = window.confirm(message);
+                resolve(ok ? 'primary' : 'secondary');
+                return;
+            }
+
+            // Create tertiary button temporarily
+            const btnTertiary = document.createElement('button');
+            btnTertiary.className = 'btn btn--primary';
+            btnTertiary.textContent = tertiaryText;
+
+            const cleanup = () => {
+                modal.classList.add('hidden');
+                btnConfirm.removeEventListener('click', onConfirm);
+                btnCancel.removeEventListener('click', onCancel);
+                btnClose.removeEventListener('click', onCancel);
+                btnTertiary.removeEventListener('click', onTertiary);
+                modal.removeEventListener('click', onBackdrop);
+                document.removeEventListener('keydown', onKey);
+                if (btnTertiary.parentNode) btnTertiary.parentNode.removeChild(btnTertiary);
+            };
+            const onConfirm = () => { cleanup(); resolve('primary'); };
+            const onCancel = () => { cleanup(); resolve('secondary'); };
+            const onTertiary = () => { cleanup(); resolve('tertiary'); };
+            const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+            const onKey = (e) => { if (e.key === 'Escape') onCancel(); if (e.key === 'Enter') onConfirm(); };
+
+            titleEl.textContent = title;
+            msgEl.textContent = message;
+            btnConfirm.textContent = primaryText;
+            btnCancel.textContent = secondaryText;
+            actions.appendChild(btnTertiary);
+
+            btnConfirm.addEventListener('click', onConfirm);
+            btnCancel.addEventListener('click', onCancel);
+            btnClose.addEventListener('click', onCancel);
+            btnTertiary.addEventListener('click', onTertiary);
+            modal.addEventListener('click', onBackdrop);
+            document.addEventListener('keydown', onKey);
+
+            modal.classList.remove('hidden');
+        });
     }
 
     getDueItems(topics = null) {
