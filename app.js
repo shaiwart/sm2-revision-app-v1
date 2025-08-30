@@ -116,6 +116,9 @@ class DSASpacedRepetitionTool {
         this.searchQuery = '';
         this.sortOption = 'next-asc';
         this.reviewLog = [];
+        // Overdue filter controls
+        this.overdueDaysFilter = '';
+        this.overdueDaysOperator = 'gte';
 
         this.init();
     }
@@ -365,7 +368,19 @@ class DSASpacedRepetitionTool {
             };
             dueDaysFilter.addEventListener('input', handler);
             dueDaysFilter.addEventListener('change', handler);
-        }        // Review buttons
+        }
+
+        // Overdue operator change (>= or <=)
+        const dueDaysOperator = document.getElementById('overdue-days-operator');
+        if (dueDaysOperator) {
+            dueDaysOperator.addEventListener('change', (e) => {
+                const val = e.target.value === 'lte' ? 'lte' : 'gte';
+                this.overdueDaysOperator = val;
+                this.updateDashboard();
+            });
+        }
+
+        // Review buttons
         const startReviewBtn = document.getElementById('start-review-btn');
         if (startReviewBtn) {
             startReviewBtn.addEventListener('click', () => {
@@ -1301,7 +1316,7 @@ class DSASpacedRepetitionTool {
             });
         }
 
-        // Apply due-in-days filter if set
+        // Apply overdue-days filter if set (supports >= or <=)
         if (this.overdueDaysFilter !== '' && Number.isFinite(this.overdueDaysFilter)) {
             const today = this.getCurrentDate();
             const t = new Date(today); t.setHours(0,0,0,0);
@@ -1310,7 +1325,10 @@ class DSASpacedRepetitionTool {
                 if (!topic.nextReviewDate || topic.nextReviewDate >= today) return false;
                 const n = new Date(topic.nextReviewDate); n.setHours(0,0,0,0);
                 const daysOverdue = Math.floor((t - n) / oneDay);
-                return daysOverdue >= this.overdueDaysFilter;
+                if (this.overdueDaysOperator === 'lte') {
+                    return daysOverdue <= this.overdueDaysFilter;
+                }
+                return daysOverdue >= this.overdueDaysFilter; // default gte
             });
         }
 
