@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="style.css" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#21808d" />
-    <meta name="description" content="Revision Notebook – spaced repetition (SM-2) for DSA topics." />
+    <meta name="description" content="Revision Notebook - spaced repetition (SM-2) for DSA topics." />
 </head>
 <body>
     <div class="container">
@@ -44,10 +44,23 @@
                     <h3 id="completed-today">0</h3>
                     <p>Completed Today</p>
                 </div>
+                <div class="stat-card">
+                    <h3 id="due-next-7">0</h3>
+                    <p>Due in 7 Days</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="current-streak">0</h3>
+                    <p>Current Streak</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="longest-streak">0</h3>
+                    <p>Longest Streak</p>
+                </div>
             </div>
 
             <!-- Category and Sub-Category Filters -->
             <div class="review-section">
+                <div class="filters-card">
                 <div class="filters-grid">
                     <div class="form-group">
                         <label class="form-label" for="category-filter">Filter by Category:</label>
@@ -61,6 +74,11 @@
                             <option value="all">All Sub-Categories</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label" for="overdue-days-filter">Overdue (days):</label>
+                        <input id="overdue-days-filter" type="number" min="0" inputmode="numeric" class="form-control select-compact" placeholder="e.g., 3" />
+                    </div>
+                </div>
                 </div>
 
                 <button id="start-review-btn" class="btn btn--primary btn--lg btn--full-width">
@@ -70,9 +88,25 @@
 
             <!-- Topics List -->
             <div class="topics-section">
-                <h3>All Topics</h3>
+                <div class="topics-header">
+                    <h3>All Topics</h3>
+                    <div class="toolbar">
+                        <input id="topic-search" type="search" class="form-control" placeholder="Search topics, descriptions, categories..." />
+                        <label for="topic-sort" class="sr-only">Sort</label>
+                        <select id="topic-sort" class="form-control select-compact">
+                            <option value="next-asc">Next Review ↑</option>
+                            <option value="next-desc">Next Review ↓</option>
+                            <option value="name-asc">Name A-Z</option>
+                            <option value="name-desc">Name Z-A</option>
+                            <option value="added-desc">Date Added ↓</option>
+                            <option value="added-asc">Date Added ↑</option>
+                        </select>
+                    </div>
+                </div>
                 <div id="topics-list" class="topics-list"></div>
             </div>
+
+
         </div>
 
         <!-- Add Topic View -->
@@ -141,15 +175,15 @@
                             <option value="">Pick question...</option>
                         </select>
                     </div>
-                    <button id="end-review-btn" class="btn btn--outline btn--sm">End Review</button>
+                    <button id="end-review-btn" class="btn btn--outline btn--sm">End Review Session</button>
                 </div>
 
                 <div class="review-content">
+                    <h2 id="current-topic-name">Topic Name</h2>
                     <div class="review-category">
                         <span id="current-topic-category" class="status status--info"></span>
                         <span id="current-topic-subcategory" class="status status--success"></span>
                     </div>
-                    <h2 id="current-topic-name">Topic Name</h2>
                     <p id="current-topic-description">Topic description...</p>
 
                     <div class="review-question">
@@ -158,10 +192,10 @@
                 </div>
 
                 <div class="review-actions">
-                    <button class="btn btn--outline difficulty-btn" data-difficulty="0">Again (&lt; 1 min)</button>
-                    <button class="btn btn--outline difficulty-btn" data-difficulty="1">Hard (&lt; 6 min)</button>
-                    <button class="btn btn--outline difficulty-btn" data-difficulty="2">Good (&lt; 10 min)</button>
-                    <button class="btn btn--primary difficulty-btn" data-difficulty="3">Easy (4 days)</button>
+                    <button class="btn btn--outline difficulty-btn" data-difficulty="0">Again</button>
+                    <button class="btn btn--outline difficulty-btn" data-difficulty="1">Hard</button>
+                    <button class="btn btn--outline difficulty-btn" data-difficulty="2">Good</button>
+                    <button class="btn btn--primary difficulty-btn" data-difficulty="3">Easy</button>
                 </div>
             </div>
         </div>
