@@ -318,13 +318,29 @@ class DSASpacedRepetitionTool {
 			addCatsContainer.addEventListener("change", () => {
 				this.updateSubcategoryFromSelected("add");
 			});
-			// Deletions via event delegation
+			// Deletions/Edits via event delegation
 			addCatsContainer.addEventListener("click", (e) => {
-				const btn = e.target.closest(
+				const editBtn = e.target.closest(
+					'button.icon-btn[data-action="edit-category"]'
+				);
+				if (editBtn) {
+					const oldName = editBtn.dataset.category;
+					this.showInputDialog({
+						title: "Rename Category",
+						message: `Update name for "${oldName}"`,
+						placeholder: "New category name",
+						defaultValue: oldName,
+						confirmText: "Update",
+					}).then((next) => {
+						if (next !== null) this.renameCategory(oldName, String(next));
+					});
+					return;
+				}
+				const delBtn = e.target.closest(
 					'button.icon-btn[data-action="delete-category"]'
 				);
-				if (btn) {
-					const cat = btn.dataset.category;
+				if (delBtn) {
+					const cat = delBtn.dataset.category;
 					this.confirmAndDeleteCategory(cat);
 				}
 			});
@@ -339,11 +355,27 @@ class DSASpacedRepetitionTool {
 				this.updateSubcategoryFromSelected("edit");
 			});
 			editCatsContainer.addEventListener("click", (e) => {
-				const btn = e.target.closest(
+				const editBtn = e.target.closest(
+					'button.icon-btn[data-action="edit-category"]'
+				);
+				if (editBtn) {
+					const oldName = editBtn.dataset.category;
+					this.showInputDialog({
+						title: "Rename Category",
+						message: `Update name for "${oldName}"`,
+						placeholder: "New category name",
+						defaultValue: oldName,
+						confirmText: "Update",
+					}).then((next) => {
+						if (next !== null) this.renameCategory(oldName, String(next));
+					});
+					return;
+				}
+				const delBtn = e.target.closest(
 					'button.icon-btn[data-action="delete-category"]'
 				);
-				if (btn) {
-					const cat = btn.dataset.category;
+				if (delBtn) {
+					const cat = delBtn.dataset.category;
 					this.confirmAndDeleteCategory(cat);
 				}
 			});
@@ -353,12 +385,32 @@ class DSASpacedRepetitionTool {
 		const subcatsContainer = document.getElementById("topic-subcategories");
 		if (subcatsContainer) {
 			subcatsContainer.addEventListener("click", (e) => {
-				const btn = e.target.closest(
+				const editBtn = e.target.closest(
+					'button.icon-btn[data-action="edit-subcategory"]'
+				);
+				if (editBtn) {
+					const old = editBtn.dataset.subcategory;
+					const parents = (editBtn.dataset.parents || "")
+						.split(",")
+						.filter(Boolean);
+					this.showInputDialog({
+						title: "Rename Sub-Category",
+						message: `Update name for "${old}"`,
+						placeholder: "New sub-category name",
+						defaultValue: old,
+						confirmText: "Update",
+					}).then((next) => {
+						if (next !== null)
+							this.renameSubCategory(old, String(next), parents);
+					});
+					return;
+				}
+				const delBtn = e.target.closest(
 					'button.icon-btn[data-action="delete-subcategory"]'
 				);
-				if (btn) {
-					const sub = btn.dataset.subcategory;
-					const parents = (btn.dataset.parents || "")
+				if (delBtn) {
+					const sub = delBtn.dataset.subcategory;
+					const parents = (delBtn.dataset.parents || "")
 						.split(",")
 						.filter(Boolean);
 					this.confirmAndDeleteSubCategory(sub, parents);
@@ -372,12 +424,32 @@ class DSASpacedRepetitionTool {
 		);
 		if (editSubcatsContainer) {
 			editSubcatsContainer.addEventListener("click", (e) => {
-				const btn = e.target.closest(
+				const editBtn = e.target.closest(
+					'button.icon-btn[data-action="edit-subcategory"]'
+				);
+				if (editBtn) {
+					const old = editBtn.dataset.subcategory;
+					const parents = (editBtn.dataset.parents || "")
+						.split(",")
+						.filter(Boolean);
+					this.showInputDialog({
+						title: "Rename Sub-Category",
+						message: `Update name for "${old}"`,
+						placeholder: "New sub-category name",
+						defaultValue: old,
+						confirmText: "Update",
+					}).then((next) => {
+						if (next !== null)
+							this.renameSubCategory(old, String(next), parents);
+					});
+					return;
+				}
+				const delBtn = e.target.closest(
 					'button.icon-btn[data-action="delete-subcategory"]'
 				);
-				if (btn) {
-					const sub = btn.dataset.subcategory;
-					const parents = (btn.dataset.parents || "")
+				if (delBtn) {
+					const sub = delBtn.dataset.subcategory;
+					const parents = (delBtn.dataset.parents || "")
 						.split(",")
 						.filter(Boolean);
 					this.confirmAndDeleteSubCategory(sub, parents);
@@ -737,6 +809,13 @@ class DSASpacedRepetitionTool {
 				label.textContent = category;
 				label.title = category;
 
+				const editBtn = document.createElement("button");
+				editBtn.type = "button";
+				editBtn.className = "icon-btn icon-edit";
+				editBtn.setAttribute("aria-label", `Edit category ${category}`);
+				editBtn.dataset.action = "edit-category";
+				editBtn.dataset.category = category;
+
 				const del = document.createElement("button");
 				del.type = "button";
 				del.className = "icon-btn icon-trash";
@@ -747,6 +826,7 @@ class DSASpacedRepetitionTool {
 
 				wrapper.appendChild(input);
 				wrapper.appendChild(label);
+				wrapper.appendChild(editBtn);
 				wrapper.appendChild(del);
 				container.appendChild(wrapper);
 			});
@@ -871,7 +951,34 @@ class DSASpacedRepetitionTool {
 		});
 
 		const list = Array.from(map.keys()).sort();
-		container.innerHTML = "";
+		// Render sub-categories using semantic list rows and exit early
+		container.innerHTML = list
+			.map((subcategory) => {
+				const id = `${containerId}-${subcategory
+					.replace(/\s+/g, "-")
+					.toLowerCase()}`;
+				const parents = Array.from(map.get(subcategory)).join(", ");
+				const escapedName = this.escapeHtml(subcategory);
+				const escapedParents = this.escapeHtml(parents);
+				return `
+				<li class="subcat-item">
+				  <div class="subcat-left">
+				    <input type="checkbox" id="${id}" name="subcategories" value="${escapedName}" />
+				    <label for="${id}" class="subcat-text">
+				      <span class="subcat-name">${escapedName}</span>
+				      <small class="subcat-meta">${escapedParents}</small>
+				    </label>
+				  </div>
+				  <div class="subcat-actions">
+				    <button type="button" class="icon-btn icon-edit" aria-label="Edit sub-category"
+				      data-action="edit-subcategory" data-subcategory="${escapedName}" data-parents="${escapedParents}"></button>
+				    <button type="button" class="icon-btn icon-trash" aria-label="Delete sub-category"
+				      data-action="delete-subcategory" data-subcategory="${escapedName}" data-parents="${escapedParents}"></button>
+				  </div>
+				</li>`;
+			})
+			.join("");
+		return;
 		list.forEach((subcategory) => {
 			const id = `${containerId}-${subcategory
 				.replace(/\s+/g, "-")
@@ -890,6 +997,13 @@ class DSASpacedRepetitionTool {
 			label.textContent = subcategory;
 			label.title = subcategory;
 
+			const editBtn = document.createElement("button");
+			editBtn.type = "button";
+			editBtn.className = "icon-btn icon-edit";
+			editBtn.dataset.action = "edit-subcategory";
+			editBtn.dataset.subcategory = subcategory;
+			editBtn.dataset.parents = Array.from(map.get(subcategory)).join(",");
+
 			const del = document.createElement("button");
 			del.type = "button";
 			del.className = "icon-btn icon-trash";
@@ -904,6 +1018,7 @@ class DSASpacedRepetitionTool {
 
 			wrapper.appendChild(input);
 			wrapper.appendChild(label);
+			wrapper.appendChild(editBtn);
 			wrapper.appendChild(del);
 			wrapper.appendChild(meta);
 			container.appendChild(wrapper);
@@ -1056,6 +1171,127 @@ class DSASpacedRepetitionTool {
 		return trimmedName;
 	}
 
+	// Rename a category across app state with duplicate prevention
+	renameCategory(oldName, newNameRaw) {
+		if (!oldName) return false;
+		const newName = String(newNameRaw || "").trim();
+		if (!newName) {
+			this.showAlert("Category name cannot be empty.", "error");
+			return false;
+		}
+		// If name unchanged (case-insensitive), no-op
+		if (oldName.toLowerCase() === newName.toLowerCase()) {
+			this.showAlert("No changes made.", "info");
+			return false;
+		}
+		// Duplicate check (case-insensitive)
+		const exists = this.categories.some(
+			(c) => c.toLowerCase() === newName.toLowerCase()
+		);
+		if (exists) {
+			this.showAlert("Category already exists.", "error");
+			return false;
+		}
+		// Update categories list
+		this.categories = this.categories.map((c) => (c === oldName ? newName : c)).sort();
+		// Move subcategory mapping key
+		if (Object.prototype.hasOwnProperty.call(this.subCategories, oldName)) {
+			this.subCategories[newName] = this.subCategories[oldName] || [];
+			delete this.subCategories[oldName];
+		}
+		// Update topics
+		this.topics = this.topics.map((t) => {
+			const cats = Array.isArray(t.categories)
+				? t.categories.map((c) => (c === oldName ? newName : c))
+				: t.category
+				? [t.category === oldName ? newName : t.category]
+				: [];
+			return {
+				...t,
+				categories: cats,
+				category: cats[0] || "",
+			};
+		});
+		// Update filters if needed
+		if (this.selectedCategoryFilter === oldName) {
+			this.selectedCategoryFilter = newName;
+		}
+		// Persist + refresh UI
+		this.saveToCloud();
+		this.populateCategoryDropdowns();
+		this.updateDashboard();
+		this.showAlert(`Category "${oldName}" renamed to "${newName}".`, "success");
+		return true;
+	}
+
+	// Rename a sub-category across specified parents (or all parents containing it)
+	renameSubCategory(oldSub, newSubRaw, parentCategories = []) {
+		const newSub = String(newSubRaw || "").trim();
+		if (!oldSub) return false;
+		if (!newSub) {
+			this.showAlert("Sub-category name cannot be empty.", "error");
+			return false;
+		}
+		if (oldSub.toLowerCase() === newSub.toLowerCase()) {
+			this.showAlert("No changes made.", "info");
+			return false;
+		}
+		// Determine parents to apply change
+		let parents = parentCategories && parentCategories.length
+			? parentCategories
+			: Object.keys(this.subCategories).filter((k) =>
+					(this.subCategories[k] || []).some(
+						(s) => s.toLowerCase() === oldSub.toLowerCase()
+					)
+			  );
+		if (!parents.length) return false;
+		// Duplicate check per parent (case-insensitive)
+		const conflict = parents.some((cat) =>
+			(this.subCategories[cat] || []).some(
+				(s) => s.toLowerCase() === newSub.toLowerCase() && s !== oldSub
+			)
+		);
+		if (conflict) {
+			this.showAlert(
+				"Sub-category already exists under one of the selected parents.",
+				"error"
+			);
+			return false;
+		}
+		// Apply rename in mapping
+		parents.forEach((cat) => {
+			this.subCategories[cat] = (this.subCategories[cat] || []).map((s) =>
+				s === oldSub ? newSub : s
+			).sort();
+		});
+		// Update topics
+		this.topics = this.topics.map((t) => {
+			const subs = Array.isArray(t.subCategories)
+				? t.subCategories.map((s) => (s === oldSub ? newSub : s))
+				: t.subCategory
+				? [t.subCategory === oldSub ? newSub : t.subCategory]
+				: [];
+			return {
+				...t,
+				subCategories: subs,
+				subCategory: subs[0] || "",
+			};
+		});
+		if (this.selectedSubCategoryFilter === oldSub) {
+			this.selectedSubCategoryFilter = newSub;
+		}
+		// Persist + refresh UI
+		this.saveToCloud();
+		this.updateSubcategoryFromSelected("add");
+		this.updateSubcategoryFromSelected("edit");
+		this.updateDashboard();
+		this.showAlert(
+			`Sub-category "${oldSub}" renamed to "${newSub}".`,
+			"success"
+		);
+		return true;
+	}
+
 	// Friendly confirm modal. Returns Promise<boolean>
 	showConfirmDialog({
 		title = "Confirm",
@@ -1120,6 +1356,92 @@ class DSASpacedRepetitionTool {
 			document.addEventListener("keydown", onKey);
 
 			modal.classList.remove("hidden");
+		});
+	}
+
+	// Input modal: returns Promise<string|null> for entered value
+	showInputDialog({
+		title = "Update",
+		message = "Enter a new value",
+		placeholder = "",
+		defaultValue = "",
+		confirmText = "Update",
+		cancelText = "Cancel",
+	} = {}) {
+		return new Promise((resolve) => {
+			const modal = document.getElementById("input-modal");
+			const titleEl = document.getElementById("input-modal-title");
+			const msgEl = document.getElementById("input-modal-message");
+			const inputEl = document.getElementById("input-modal-input");
+			const btnConfirm = document.getElementById("input-modal-confirm");
+			const btnCancel = document.getElementById("input-modal-cancel");
+			const btnClose = document.getElementById("input-modal-close");
+
+			if (
+				!modal ||
+				!titleEl ||
+				!msgEl ||
+				!inputEl ||
+				!btnConfirm ||
+				!btnCancel ||
+				!btnClose
+			) {
+				const val = window.prompt(message, defaultValue);
+				resolve(val === null ? null : String(val));
+				return;
+			}
+
+			const cleanup = () => {
+				modal.classList.add("hidden");
+				btnConfirm.removeEventListener("click", onConfirm);
+				btnCancel.removeEventListener("click", onCancel);
+				btnClose.removeEventListener("click", onCancel);
+				modal.removeEventListener("click", onBackdrop);
+				inputEl.removeEventListener("input", onInput);
+				document.removeEventListener("keydown", onKey);
+			};
+
+			const onConfirm = () => {
+				const v = (inputEl.value || "").trim();
+				if (!v) {
+					inputEl.focus();
+					return;
+				}
+				cleanup();
+				resolve(v);
+			};
+			const onCancel = () => {
+				cleanup();
+				resolve(null);
+			};
+			const onBackdrop = (e) => {
+				if (e.target === modal) onCancel();
+			};
+			const onKey = (e) => {
+				if (e.key === "Escape") onCancel();
+				if (e.key === "Enter") onConfirm();
+			};
+			const onInput = () => {
+				btnConfirm.disabled = (inputEl.value || "").trim().length === 0;
+			};
+
+			titleEl.textContent = title;
+			msgEl.textContent = message;
+			inputEl.placeholder = placeholder || "";
+			inputEl.value = defaultValue || "";
+			btnConfirm.textContent = confirmText;
+			btnCancel.textContent = cancelText;
+			btnConfirm.disabled = (inputEl.value || "").trim().length === 0;
+
+			btnConfirm.addEventListener("click", onConfirm);
+			btnCancel.addEventListener("click", onCancel);
+			btnClose.addEventListener("click", onCancel);
+			modal.addEventListener("click", onBackdrop);
+			document.addEventListener("keydown", onKey);
+			inputEl.addEventListener("input", onInput);
+
+			modal.classList.remove("hidden");
+			setTimeout(() => inputEl.focus(), 0);
 		});
 	}
 
