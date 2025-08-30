@@ -1206,6 +1206,67 @@ body {
 	cursor: pointer;
 }
 
+/* Two-part layout: left (checkbox+name) | right (icons + parents) */
+
+.checkbox-item {
+	display: grid;
+	grid-template-columns: 20px 1fr auto auto;
+	column-gap: var(--space-8);
+	row-gap: var(--space-4);
+	align-items: center;
+	width: 100%;
+}
+.checkbox-item input[type="checkbox"] {
+	margin-right: 0;
+	grid-column: 1;
+}
+
+/* push the icon cluster to the right */
+.checkbox-item .icon-btn:first-of-type {
+	margin-left: 0;
+}
+
+/* main row containers for left/right alignment */
+.checkbox-item .ci-main {
+	display: flex;
+	align-items: center;
+	width: 100%;
+}
+.checkbox-item .ci-left {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-8);
+}
+.checkbox-item .ci-right {
+	display: inline-flex;
+	align-items: center;
+	margin-left: auto;
+}
+.checkbox-item .ci-right .icon-btn {
+	margin-left: var(--space-8);
+}
+.checkbox-item .ci-right .icon-btn + .icon-btn {
+	margin-left: var(--space-4);
+}
+
+/* baseline icon spacing */
+.checkbox-item label {
+	grid-column: 2;
+}
+.checkbox-item .icon-btn {
+	margin-left: 0;
+}
+.checkbox-item .icon-btn + .icon-btn {
+	margin-left: 0;
+}
+.checkbox-item .icon-btn.icon-edit {
+	grid-column: 3;
+	justify-self: end;
+}
+.checkbox-item .icon-btn.icon-trash {
+	grid-column: 4;
+}
+
 /* Inline header with actions (input + button) aligned to right */
 .inline-header {
 	display: flex;
@@ -1230,7 +1291,7 @@ body {
 	border: none;
 	color: var(--color-text-secondary);
 	padding: 0;
-	margin-left: var(--space-8);
+	/* margin-left: var(--space-8); */
 	cursor: pointer;
 }
 .icon-btn:hover {
@@ -1254,11 +1315,96 @@ body {
 		no-repeat center / contain;
 }
 
+/* Pencil icon for edit */
+.icon-btn.icon-edit {
+	font-size: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+.icon-btn.icon-edit::before {
+	content: "";
+	width: 16px;
+	height: 16px;
+	background: currentColor;
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm2.92 2.33H5v-.92l8.06-8.06.92.92L5.92 19.58ZM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82Z'/%3E%3C/svg%3E")
+		no-repeat center / contain;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' d='M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Zm2.92 2.33H5v-.92l8.06-8.06.92.92L5.92 19.58ZM20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82Z'/%3E%3C/svg%3E")
+		no-repeat center / contain;
+}
+
 .sub-meta {
-	display: block;
+	display: inline-block;
 	font-size: var(--font-size-xs);
 	color: var(--color-text-secondary);
 	opacity: 0.8;
+	margin-left: var(--space-8);
+}
+
+/* For sub-category rows, place parent category names below the main row */
+.checkbox-item .sub-meta {
+	display: block;
+	grid-column: 2 / 5; /* under the label and icons */
+	margin-left: 0;
+	margin-top: var(--space-4);
+}
+
+/* Emphasis for sub-category rows: big name + muted parent */
+#topic-subcategories .checkbox-item label,
+#edit-topic-subcategories .checkbox-item label {
+	font-size: var(--font-size-xl);
+	font-weight: var(--font-weight-semibold);
+	color: var(--color-primary);
+}
+
+#topic-subcategories .checkbox-item .sub-meta,
+#edit-topic-subcategories .checkbox-item .sub-meta {
+	font-size: var(--font-size-sm);
+	color: var(--color-text-secondary);
+	opacity: 0.9;
+}
+
+/* New structured sub-category list rows */
+.subcat-item {
+	list-style: none;
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	/* gap: var(--space-12);
+	padding: var(--space-6) 0; */
+}
+.subcat-left {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: var(--space-8);
+	flex: 1 1 auto;
+}
+.subcat-left input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	accent-color: var(--color-primary); /* match category checkbox color */
+	margin-top: 2px; /* align with first line of text */
+}
+.subcat-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.subcat-name {
+	/* Match category text style */
+	font-size: inherit;
+	font-weight: inherit;
+	color: var(--color-text);
+}
+.subcat-meta {
+	font-size: var(--font-size-sm);
+	color: var(--color-text-secondary);
+	opacity: 0.9;
+}
+.subcat-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-4);
 }
 
 /* Slightly increase spacing between form groups for better breathing room */
