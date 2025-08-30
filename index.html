@@ -76,7 +76,13 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="overdue-days-filter">Overdue (days):</label>
-                        <input id="overdue-days-filter" type="number" min="0" inputmode="numeric" class="form-control select-compact" placeholder="e.g., 3" />
+                        <div class="inline-actions">
+                            <select id="overdue-days-operator" class="form-control select-compact" aria-label="Overdue operator">
+                                <option value="gte">≥</option>
+                                <option value="lte">≤</option>
+                            </select>
+                            <input id="overdue-days-filter" type="number" min="0" inputmode="numeric" class="form-control select-compact" placeholder="e.g., 3" />
+                        </div>
                     </div>
                 </div>
                 </div>
