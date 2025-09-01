@@ -161,8 +161,12 @@ class DSASpacedRepetitionTool {
 
 		// Browser notification settings
 		// Daily schedule for due-count notifications (24h format HH:MM, local time)
-		this.notificationTimes = ["09:00", "18:00"]; // Edit to adjust times
+		this.notificationTimes = ["09:00", "18:00"]; // Default; can be overridden by cloud prefs
 		this._notificationTimeout = null;
+
+		// Preference handling and optional local mirroring for notifications
+		this._useLocalForNotifications = false; // set true only if required
+		this.preferences = { theme: null, notificationTimes: null };
 
 		this.init();
 	}
@@ -175,7 +179,7 @@ class DSASpacedRepetitionTool {
 		this.populateCategoryDropdowns();
 		this.updateDashboard();
 		this.checkOverduePopup();
-		this.loadSettingsFromLocal();
+		this.syncNotificationTimesLocal();
 		this.initNotifications();
 	}
 
@@ -358,6 +362,15 @@ class DSASpacedRepetitionTool {
 					categories: this.categories,
 					subCategories: this.subCategories,
 					reviewLog: this.reviewLog,
+					preferences: {
+						theme:
+							this.preferences?.theme ||
+							document.documentElement.getAttribute(
+								"data-color-scheme"
+							) ||
+							null,
+						notificationTimes: this.notificationTimes || [],
+					},
 				}),
 			});
 		} catch (error) {
@@ -385,12 +398,24 @@ class DSASpacedRepetitionTool {
 			this.reviewLog = Array.isArray(data.record.reviewLog)
 				? data.record.reviewLog
 				: [];
+
+			// Preferences
+			this.preferences = data.record.preferences || {};
+			if (
+				Array.isArray(this.preferences.notificationTimes) &&
+				this.preferences.notificationTimes.every(
+					(s) => typeof s === "string"
+				)
+			) {
+				this.notificationTimes = this.preferences.notificationTimes;
+			}
 		} catch (error) {
 			console.error("Error loading:", error);
 			this.topics = [...this.sampleTopics];
 			this.categories = [...this.defaultCategories];
 			this.subCategories = { ...this.defaultSubCategories };
 			this.reviewLog = [];
+			this.preferences = {};
 		}
 	}
 
@@ -925,26 +950,13 @@ class DSASpacedRepetitionTool {
 	}
 
 	// Settings: load/save and form helpers
-	loadSettingsFromLocal() {
-		try {
-			const raw = localStorage.getItem("dsaTool_notificationTimes");
-			if (raw) {
-				const parsed = JSON.parse(raw);
-				if (
-					Array.isArray(parsed) &&
-					parsed.every((s) => typeof s === "string")
-				) {
-					this.notificationTimes = parsed;
-				}
-			}
-		} catch {}
-	}
-
-	saveSettingsToLocal() {
+	// Local mirroring only if required for notifications; otherwise avoid localStorage.
+	syncNotificationTimesLocal() {
+		if (!this._useLocalForNotifications) return;
 		try {
 			localStorage.setItem(
 				"dsaTool_notificationTimes",
-				JSON.stringify(this.notificationTimes)
+				JSON.stringify(this.notificationTimes || [])
 			);
 		} catch {}
 	}
@@ -981,7 +993,13 @@ class DSASpacedRepetitionTool {
 			return;
 		}
 		this.notificationTimes = parsed;
-		this.saveSettingsToLocal();
+		// Update cloud preferences and optionally mirror to local
+		this.preferences = {
+			...this.preferences,
+			notificationTimes: this.notificationTimes,
+		};
+		this.saveToCloud();
+		this.syncNotificationTimesLocal();
 		this.initNotifications(); // reschedule with new times
 		this.showAlert("Settings saved.", "success");
 		this.switchView("dashboard");
@@ -2934,9 +2952,9 @@ class DSASpacedRepetitionTool {
 	}
 	// Utility Functions
 	initTheme() {
-		const stored = localStorage.getItem("dsaTool_theme");
+		// Prefer cloud preference if available; fallback to system preference
 		let theme =
-			stored ||
+			(this.preferences && this.preferences.theme) ||
 			(window.matchMedia &&
 			window.matchMedia("(prefers-color-scheme: dark)").matches
 				? "dark"
@@ -2946,7 +2964,9 @@ class DSASpacedRepetitionTool {
 
 	applyTheme(theme) {
 		document.documentElement.setAttribute("data-color-scheme", theme);
-		localStorage.setItem("dsaTool_theme", theme);
+		// Persist preference to cloud instead of localStorage
+		this.preferences = { ...this.preferences, theme };
+		this.saveToCloud();
 		const btn = document.getElementById("theme-toggle");
 		if (btn) {
 			const isDark = theme === "dark";
