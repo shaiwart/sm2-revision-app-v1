@@ -159,6 +159,11 @@ class DSASpacedRepetitionTool {
 		this.overdueDaysFilter = "";
 		this.overdueDaysOperator = "gte";
 
+		// Browser notification settings
+		// Daily schedule for due-count notifications (24h format HH:MM, local time)
+		this.notificationTimes = ["09:00", "18:00"]; // Edit to adjust times
+		this._notificationTimeout = null;
+
 		this.init();
 	}
 
@@ -170,6 +175,8 @@ class DSASpacedRepetitionTool {
 		this.populateCategoryDropdowns();
 		this.updateDashboard();
 		this.checkOverduePopup();
+		this.loadSettingsFromLocal();
+		this.initNotifications();
 	}
 
 	// Local Storage Management
@@ -207,6 +214,121 @@ class DSASpacedRepetitionTool {
 			this.categories = [...this.defaultCategories];
 			this.subCategories = { ...this.defaultSubCategories };
 			this.saveToCloud();
+		}
+	}
+
+	// Notifications: scheduled reminders at specific local times
+	initNotifications() {
+		try {
+			if (
+				typeof window === "undefined" ||
+				typeof Notification === "undefined"
+			) {
+				return; // Environment doesn't support Notifications
+			}
+
+			// Clear any previous timeout if re-initialized
+			if (this._notificationTimeout) {
+				clearTimeout(this._notificationTimeout);
+				this._notificationTimeout = null;
+			}
+
+			const scheduleNext = () => {
+				const delay = this._msUntilNextNotification();
+				if (delay == null) return; // No valid schedule
+				this._notificationTimeout = setTimeout(() => {
+					this.showDueNotification({ silentIfZero: true });
+					scheduleNext();
+				}, delay);
+			};
+
+			// Request permission if needed, then schedule
+			if (Notification.permission === "granted") {
+				scheduleNext();
+			} else if (Notification.permission === "default") {
+				Notification.requestPermission().then((perm) => {
+					if (perm === "granted") scheduleNext();
+				});
+			}
+		} catch (e) {
+			// Fail silently if notifications not available
+			console.warn("Notifications unavailable:", e);
+		}
+	}
+
+	// Compute milliseconds until the next scheduled notification time
+	_msUntilNextNotification() {
+		try {
+			if (
+				!Array.isArray(this.notificationTimes) ||
+				this.notificationTimes.length === 0
+			)
+				return null;
+			const now = new Date();
+			let nextAt = null;
+			for (const t of this.notificationTimes) {
+				const [hh, mm] = String(t)
+					.split(":")
+					.map((x) => parseInt(x, 10));
+				if (!Number.isFinite(hh) || !Number.isFinite(mm)) continue;
+				const cand = new Date(now);
+				cand.setHours(hh, mm, 0, 0);
+				let when = cand;
+				if (when <= now) {
+					when = new Date(cand);
+					when.setDate(cand.getDate() + 1);
+				}
+				if (!nextAt || when < nextAt) nextAt = when;
+			}
+			if (!nextAt) return null;
+			const delay = nextAt.getTime() - now.getTime();
+			return Math.max(0, delay);
+		} catch {
+			return null;
+		}
+	}
+
+	showDueNotification(options = {}) {
+		const { silentIfZero = false } = options;
+		try {
+			if (
+				typeof Notification === "undefined" ||
+				Notification.permission !== "granted"
+			) {
+				return;
+			}
+			const dueCount = this.getDueItems().length;
+			if (dueCount <= 0 && silentIfZero) return;
+
+			const title =
+				dueCount > 0
+					? "Spaced Repetition: Items Due"
+					: "Spaced Repetition";
+			const body =
+				dueCount > 0
+					? `${dueCount} topic${
+							dueCount === 1 ? "" : "s"
+					  } due right now.`
+					: "No topics due right now.";
+
+			const n = new Notification(title, {
+				body,
+				icon: "assets/favicon.png",
+				tag: "dsa-due-reminder",
+				renotify: true,
+			});
+			n.onclick = () => {
+				try {
+					// Focus existing tab if possible, else open the app
+					window.focus();
+					if (document.visibilityState !== "visible") {
+						// Best-effort open in a new tab/window
+						window.open("index.html", "_blank");
+					}
+				} catch {}
+			};
+		} catch (e) {
+			console.warn("Failed to show notification:", e);
 		}
 	}
 
@@ -279,6 +401,14 @@ class DSASpacedRepetitionTool {
 		if (themeToggle) {
 			themeToggle.addEventListener("click", () => {
 				this.toggleTheme();
+			});
+		}
+
+		// Settings button
+		const settingsBtn = document.getElementById("settings-btn");
+		if (settingsBtn) {
+			settingsBtn.addEventListener("click", () => {
+				this.switchView("settings");
 			});
 		}
 
@@ -735,6 +865,28 @@ class DSASpacedRepetitionTool {
 		// Make functions available globally for onclick handlers
 		window.deleteTopic = (topicId) => this.deleteTopic(topicId);
 		window.editTopic = (topicId) => this.openEditModal(topicId);
+
+		// Settings form handlers
+		const settingsForm = document.getElementById("settings-form");
+		const settingsSave = document.getElementById("settings-save");
+		const settingsCancel = document.getElementById("settings-cancel");
+		if (settingsForm) {
+			settingsForm.addEventListener("submit", (e) => {
+				e.preventDefault();
+				this.handleSettingsSave();
+			});
+		}
+		if (settingsSave) {
+			settingsSave.addEventListener("click", (e) => {
+				e.preventDefault();
+				this.handleSettingsSave();
+			});
+		}
+		if (settingsCancel) {
+			settingsCancel.addEventListener("click", () => {
+				this.switchView("dashboard");
+			});
+		}
 	}
 
 	// View Management
@@ -765,7 +917,74 @@ class DSASpacedRepetitionTool {
 				this.resetAddTopicForm();
 				this.populateCategoryDropdowns();
 			}
+			// Populate settings when opened
+			if (viewName === "settings") {
+				this.populateSettingsForm();
+			}
 		}
+	}
+
+	// Settings: load/save and form helpers
+	loadSettingsFromLocal() {
+		try {
+			const raw = localStorage.getItem("dsaTool_notificationTimes");
+			if (raw) {
+				const parsed = JSON.parse(raw);
+				if (
+					Array.isArray(parsed) &&
+					parsed.every((s) => typeof s === "string")
+				) {
+					this.notificationTimes = parsed;
+				}
+			}
+		} catch {}
+	}
+
+	saveSettingsToLocal() {
+		try {
+			localStorage.setItem(
+				"dsaTool_notificationTimes",
+				JSON.stringify(this.notificationTimes)
+			);
+		} catch {}
+	}
+
+	populateSettingsForm() {
+		const input = document.getElementById("notification-times-input");
+		if (input) {
+			input.value = (this.notificationTimes || []).join(", ");
+		}
+	}
+
+	parseNotificationTimes(str) {
+		if (!str) return [];
+		return String(str)
+			.split(",")
+			.map((s) => s.trim())
+			.filter((s) => s.length > 0)
+			.map((s) => {
+				const m = s.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+				return m ? `${m[1].padStart(2, "0")}:${m[2]}` : null;
+			})
+			.filter(Boolean);
+	}
+
+	handleSettingsSave() {
+		const input = document.getElementById("notification-times-input");
+		if (!input) return;
+		const parsed = this.parseNotificationTimes(input.value);
+		if (parsed.length === 0) {
+			this.showAlert(
+				"Please enter at least one valid time (HH:MM).",
+				"error"
+			);
+			return;
+		}
+		this.notificationTimes = parsed;
+		this.saveSettingsToLocal();
+		this.initNotifications(); // reschedule with new times
+		this.showAlert("Settings saved.", "success");
+		this.switchView("dashboard");
 	}
 
 	// Category Management
