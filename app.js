@@ -332,7 +332,8 @@ class DSASpacedRepetitionTool {
 						defaultValue: oldName,
 						confirmText: "Update",
 					}).then((next) => {
-						if (next !== null) this.renameCategory(oldName, String(next));
+						if (next !== null)
+							this.renameCategory(oldName, String(next));
 					});
 					return;
 				}
@@ -367,7 +368,8 @@ class DSASpacedRepetitionTool {
 						defaultValue: oldName,
 						confirmText: "Update",
 					}).then((next) => {
-						if (next !== null) this.renameCategory(oldName, String(next));
+						if (next !== null)
+							this.renameCategory(oldName, String(next));
 					});
 					return;
 				}
@@ -1002,7 +1004,9 @@ class DSASpacedRepetitionTool {
 			editBtn.className = "icon-btn icon-edit";
 			editBtn.dataset.action = "edit-subcategory";
 			editBtn.dataset.subcategory = subcategory;
-			editBtn.dataset.parents = Array.from(map.get(subcategory)).join(",");
+			editBtn.dataset.parents = Array.from(map.get(subcategory)).join(
+				","
+			);
 
 			const del = document.createElement("button");
 			del.type = "button";
@@ -1193,7 +1197,9 @@ class DSASpacedRepetitionTool {
 			return false;
 		}
 		// Update categories list
-		this.categories = this.categories.map((c) => (c === oldName ? newName : c)).sort();
+		this.categories = this.categories
+			.map((c) => (c === oldName ? newName : c))
+			.sort();
 		// Move subcategory mapping key
 		if (Object.prototype.hasOwnProperty.call(this.subCategories, oldName)) {
 			this.subCategories[newName] = this.subCategories[oldName] || [];
@@ -1220,7 +1226,10 @@ class DSASpacedRepetitionTool {
 		this.saveToCloud();
 		this.populateCategoryDropdowns();
 		this.updateDashboard();
-		this.showAlert(`Category "${oldName}" renamed to "${newName}".`, "success");
+		this.showAlert(
+			`Category "${oldName}" renamed to "${newName}".`,
+			"success"
+		);
 		return true;
 	}
 
@@ -1237,13 +1246,14 @@ class DSASpacedRepetitionTool {
 			return false;
 		}
 		// Determine parents to apply change
-		let parents = parentCategories && parentCategories.length
-			? parentCategories
-			: Object.keys(this.subCategories).filter((k) =>
-					(this.subCategories[k] || []).some(
-						(s) => s.toLowerCase() === oldSub.toLowerCase()
-					)
-			  );
+		let parents =
+			parentCategories && parentCategories.length
+				? parentCategories
+				: Object.keys(this.subCategories).filter((k) =>
+						(this.subCategories[k] || []).some(
+							(s) => s.toLowerCase() === oldSub.toLowerCase()
+						)
+				  );
 		if (!parents.length) return false;
 		// Duplicate check per parent (case-insensitive)
 		const conflict = parents.some((cat) =>
@@ -1260,9 +1270,9 @@ class DSASpacedRepetitionTool {
 		}
 		// Apply rename in mapping
 		parents.forEach((cat) => {
-			this.subCategories[cat] = (this.subCategories[cat] || []).map((s) =>
-				s === oldSub ? newSub : s
-			).sort();
+			this.subCategories[cat] = (this.subCategories[cat] || [])
+				.map((s) => (s === oldSub ? newSub : s))
+				.sort();
 		});
 		// Update topics
 		this.topics = this.topics.map((t) => {
@@ -1929,8 +1939,14 @@ class DSASpacedRepetitionTool {
 			t.setHours(0, 0, 0, 0);
 			const oneDay = 24 * 60 * 60 * 1000;
 			filtered = filtered.filter((topic) => {
-				if (!topic.nextReviewDate || topic.nextReviewDate >= today)
-					return false;
+				if (!topic.nextReviewDate) return false;
+				// For "lte", include items due today (treat as 0 days overdue).
+				// For "gte" (default), keep previous behavior: strictly overdue only.
+				if (this.overdueDaysOperator === "lte") {
+					if (topic.nextReviewDate > today) return false; // exclude future
+				} else {
+					if (topic.nextReviewDate >= today) return false; // exclude today and future
+				}
 				const n = new Date(topic.nextReviewDate);
 				n.setHours(0, 0, 0, 0);
 				const daysOverdue = Math.floor((t - n) / oneDay);
